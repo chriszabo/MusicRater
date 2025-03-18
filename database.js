@@ -3,8 +3,10 @@ import * as SQLite from 'expo-sqlite';
 let db = null;
 
 export const initDatabase = async () => {
+    try {
   if (!db) {
     db = await SQLite.openDatabaseAsync('musicrater.db');
+    console.log('Datenbank erfolgreich geöffnet');
     await db.execAsync('PRAGMA foreign_keys = ON;');
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS songs (
@@ -27,6 +29,11 @@ export const initDatabase = async () => {
       `);
   }
   return db;
+} catch (error)
+{
+    console.error('Datenbankfehler:', error);
+    throw error;
+  }
 };
 
 export const addSong = async (song) => {

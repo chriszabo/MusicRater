@@ -4,11 +4,11 @@
     "slug": "MusicRater",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/dog_icon.jpeg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/dog_splash.jpeg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,8 +16,15 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.kik.musicrater",
+      "permissions": [
+        "ACCESS_NETWORK_STATE",
+        "INTERNET"
+      ],
+      "versionCode": 1,
+      "buildType": "apk",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/dog_icon.jpeg",
         "backgroundColor": "#ffffff"
       }
     },
@@ -26,6 +33,11 @@
     },
     "plugins": [
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "61fa1501-9a1e-4d21-aba6-1a17673d3fb7"
+      }
+    }
   }
 }

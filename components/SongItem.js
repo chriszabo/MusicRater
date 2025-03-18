@@ -1,6 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 
+const COLORS = {
+    primary: '#2A9D8F',  // Sanftes Türkis
+    secondary: '#264653', // Tiefes Blau-Grau
+    accent: '#E9C46A',   // Warmes Senfgelb
+    background: '#F8F9FA', // Sehr helles Grau
+    text: '#2B2D42',      //Dunkles Grau-Blau
+    error: '#E76F51',    // Warmes Korallenrot
+  };
+  
 const SongItem = ({ song, onPress }) => {
   return (
     <TouchableOpacity onPress={onPress} style={styles.container}>
@@ -15,33 +24,49 @@ const SongItem = ({ song, onPress }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  image: {
-    width: 50,
-    height: 50,
-    borderRadius: 4,
-    marginRight: 10,
-  },
-  details: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  title: {
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  artist: {
-    color: '#666',
-  },
-  album: {
-    color: '#888',
-    fontSize: 12,
-  },
-});
+    container: {
+      flexDirection: 'row',
+      padding: 15,
+      marginVertical: 5,
+      marginHorizontal: 10,
+      backgroundColor: 'white',
+      borderRadius: 10,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+      overflow: 'hidden',
+    },
+    image: {
+      width: 60,
+      height: 60,
+      borderRadius: 8,
+      marginRight: 15,
+    },
+    title: {
+      fontWeight: '600',
+      fontSize: 16,
+      color: COLORS.text,
+      marginBottom: 4,
+      flexWrap: 'wrap'
+    },
+    artist: {
+      color: COLORS.secondary,
+      fontSize: 14,
+      flexWrap: 'wrap'
+    },
+    album: {
+      color: COLORS.text + '90',
+      fontSize: 13,
+      flexWrap: 'wrap'
+    },
+    details: {
+        flex: 1,
+        marginRight: 10,
+        maxWidth: '85%',
+      },
+  });
 
 export default SongItem;

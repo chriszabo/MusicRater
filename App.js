@@ -1,6 +1,6 @@
-import 'react-native-gesture-handler'; // Wichtig für Wischgesten
-import { gestureHandlerRootHOC, GestureHandlerRootView } from 'react-native-gesture-handler'; // Import für Android
-import React, { useEffect } from 'react';
+import 'react-native-gesture-handler';
+import { gestureHandlerRootHOC, GestureHandlerRootView } from 'react-native-gesture-handler';
+import React, { useEffect, useState, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { initDatabase } from './database';
@@ -10,106 +10,102 @@ import RateScreen from './screens/RateScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
+import ErrorBoundary from './ErrorBoundary';
+
+SplashScreen.preventAutoHideAsync();
 
 const Tab = createBottomTabNavigator();
 const SearchStack = createStackNavigator();
 const RatingsStack = createStackNavigator();
 
-// Search Stack
 const SearchStackScreen = () => (
   <SearchStack.Navigator 
-  screenOptions={{ 
-    headerShown: false,
-    gestureEnabled: true,
-    gestureDirection: 'horizontal',
-    // Android-spezifische Einstellungen:
-    fullScreenGestureEnabled: true,
-    animation: 'slide_from_right', // Für bessere Animation
-  }}
+    screenOptions={{ 
+      headerShown: false,
+      gestureEnabled: true,
+      gestureDirection: 'horizontal',
+      fullScreenGestureEnabled: true,
+      animation: 'slide_from_right',
+    }}
   >
-    <SearchStack.Screen 
-      name="SearchMain" 
-      component={SearchScreen} 
-    />
-    <SearchStack.Screen 
-      name="Rate" 
-      component={RateScreen}
-    />
+    <SearchStack.Screen name="SearchMain" component={SearchScreen} />
+    <SearchStack.Screen name="Rate" component={RateScreen} />
   </SearchStack.Navigator>
 );
 
-// Ratings Stack
 const RatingsStackScreen = () => (
   <RatingsStack.Navigator 
-  screenOptions={{ 
-    headerShown: false,
-    gestureEnabled: true,
-    gestureDirection: 'horizontal',
-    // Android-spezifische Einstellungen:
-    fullScreenGestureEnabled: true,
-    animation: 'slide_from_right', // Für bessere Animation
-  }}
+    screenOptions={{ 
+      headerShown: false,
+      gestureEnabled: true,
+      gestureDirection: 'horizontal',
+      fullScreenGestureEnabled: true,
+      animation: 'slide_from_right',
+    }}
   >
-    <RatingsStack.Screen 
-      name="RatingsList" 
-      component={RatingsScreen} 
-    />
-    <RatingsStack.Screen 
-      name="Rate" 
-      component={RateScreen}
-    />
+    <RatingsStack.Screen name="RatingsList" component={RatingsScreen} />
+    <RatingsStack.Screen name="Rate" component={RateScreen} />
   </RatingsStack.Navigator>
 );
 
 function App() {
+  const [appIsReady, setAppIsReady] = useState(false);
+
   useEffect(() => {
-    const initializeApp = async () => {
+    async function prepare() {
       try {
         await initDatabase();
       } catch (error) {
-        console.error("Database initialization failed:", error);
+        console.error("Initialization failed:", error);
+      } finally {
+        setAppIsReady(true);
       }
-    };
-    initializeApp();
+    }
+    prepare();
   }, []);
 
+  const onLayoutRootView = useCallback(async () => {
+    if (appIsReady) {
+      await SplashScreen.hideAsync();
+    }
+  }, [appIsReady]);
+
+  if (!appIsReady) return null;
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-          <Tab.Navigator
-            screenOptions={({ route }) => ({
-              tabBarIcon: ({ focused, color, size }) => {
-                let iconName;
-                if (route.name === 'Search') {
-                  iconName = focused ? 'search' : 'search-outline';
-                } else if (route.name === 'Ratings') {
-                  iconName = focused ? 'list' : 'list-outline';
-                }
-                return <Ionicons name={iconName} size={size} color={color} />;
-              },
-              tabBarActiveTintColor: '#1EB1FC',
-              tabBarInactiveTintColor: 'gray',
-              headerShown: false, // Header für Tabs ausblenden
-            })}
-          >
-            <Tab.Screen 
-              name="Search" 
-              component={SearchStackScreen} 
-              options={{ title: 'Songs suchen' }}
-            />
-            <Tab.Screen 
-              name="Ratings" 
-              component={RatingsStackScreen} 
-              options={{ title: 'Meine Ratings' }}
-            />
-          </Tab.Navigator>
-        </SafeAreaView>
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+            <Tab.Navigator
+              screenOptions={({ route }) => ({
+                tabBarIcon: ({ focused, color, size }) => {
+                  let iconName;
+                  if (route.name === 'Search') {
+                    iconName = focused ? 'search' : 'search-outline';
+                  } else if (route.name === 'Ratings') {
+                    iconName = focused ? 'list' : 'list-outline';
+                  }
+                  return <Ionicons name={iconName} size={size} color={color} />;
+                },
+                tabBarActiveTintColor: '#1EB1FC',
+                tabBarInactiveTintColor: 'gray',
+                headerShown: false,
+              })}
+            >
+              <Tab.Screen name="Search" component={SearchStackScreen} options={{ title: 'Songs suchen' }} />
+              <Tab.Screen name="Ratings" component={RatingsStackScreen} options={{ title: 'Meine Ratings' }} />
+            </Tab.Navigator>
+          </SafeAreaView>
+        </NavigationContainer>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
-export default gestureHandlerRootHOC(App); // Wichtig für Android
+export default gestureHandlerRootHOC(() => (
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+));

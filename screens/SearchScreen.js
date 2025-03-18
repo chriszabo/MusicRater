@@ -4,6 +4,15 @@ import { searchSpotify } from '../spotify';
 import { addSong, getExistingRating } from '../database';
 import SongItem from '../components/SongItem';
 
+const COLORS = {
+    primary: '#2A9D8F',  // Sanftes Türkis
+    secondary: '#264653', // Tiefes Blau-Grau
+    accent: '#E9C46A',   // Warmes Senfgelb
+    background: '#F8F9FA', // Sehr helles Grau
+    text: '#2B2D42',      //Dunkles Grau-Blau
+    error: '#E76F51',    // Warmes Korallenrot
+  };
+
 const SearchScreen = ({ navigation }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -51,12 +60,13 @@ const SearchScreen = ({ navigation }) => {
           onSubmitEditing={handleSearch}
           style={styles.input}
         />
-        <Button 
+        {/* <Button 
+        style={styles.searchButton}
           title="Suche" 
           onPress={handleSearch} 
           disabled={isSearching}
-          color="#1EB1FC"
-        />
+          color={COLORS.primary}
+        /> */}
       </View>
 
       {isSearching && <ActivityIndicator size="large" style={styles.loader} />}
@@ -96,19 +106,50 @@ const SearchScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  searchBox: { flexDirection: 'row', marginBottom: 15 },
-  input: { 
-    flex: 1, 
-    borderColor: '#ccc', 
-    borderWidth: 1, 
-    borderRadius: 5, 
-    padding: 10,
-    marginRight: 10
-  },
-  loader: { marginVertical: 20 },
-  error: { color: 'red', textAlign: 'center', marginTop: 20 },
-  prompt: { textAlign: 'center', marginTop: 20, color: '#666' }
-});
+    container: { 
+      flex: 1, 
+      padding: 20,
+      backgroundColor: COLORS.background,
+    },
+    searchBox: { 
+      flexDirection: 'row', 
+      marginBottom: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    input: { 
+      flex: 1,
+      backgroundColor: 'white',
+      borderColor: COLORS.primary + '20', // 20% Transparenz
+      borderWidth: 1,
+      borderRadius: 10,
+      padding: 14,
+      marginRight: 10,
+      fontSize: 16,
+      color: COLORS.text,
+    },
+    loader: { marginVertical: 20 },
+    error: { 
+      color: COLORS.error,
+      textAlign: 'center',
+      marginTop: 20,
+      fontWeight: '500',
+    },
+    prompt: {
+      textAlign: 'center',
+      marginTop: 20,
+      color: COLORS.text + '90', // 90% Opazität
+      fontSize: 16,
+      lineHeight: 24,
+    },
+    searchButton: {
+        borderRadius: 10,
+        alignItems: 'center',
+        textAlign: 'center',
+      },
+  });
 
 export default SearchScreen;

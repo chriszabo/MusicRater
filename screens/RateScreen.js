@@ -3,6 +3,15 @@ import { View, Text, StyleSheet, Image, Alert, Button } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { addRating, deleteRating } from '../database';
 
+const COLORS = {
+  primary: '#2A9D8F',  // Sanftes Türkis
+  secondary: '#264653', // Tiefes Blau-Grau
+  accent: '#E9C46A',   // Warmes Senfgelb
+  background: '#F8F9FA', // Sehr helles Grau
+  text: '#2B2D42',      //Dunkles Grau-Blau
+  error: '#E76F51',    // Warmes Korallenrot
+};
+
 const RateScreen = ({ route, navigation }) => {
   const { songId, initialScore, title, artist, album, image, created_at } = route.params;
   const [score, setScore] = useState(initialScore ? parseFloat(initialScore) : 5.0);
@@ -41,14 +50,16 @@ const RateScreen = ({ route, navigation }) => {
     <View style={styles.container}>
       <View style={styles.content}>
       {/* Song Information */}
+      <View style={styles.imageContainer}>
       <Image 
         source={{ uri: image }} 
         style={styles.image} 
-        resizeMode="contain"
+        resizeMode="cover"
       />
+      </View>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.artist}>Artist: {artist}</Text>
-      <Text style={styles.album}>Album: {album}</Text>
+      <Text style={styles.artist}>{artist}</Text>
+      <Text style={styles.album}>{album}</Text>
 
       {/* Rating Slider */}
       <Text style={styles.sliderLabel}>{Math.round(score)}/10</Text>
@@ -80,47 +91,28 @@ const RateScreen = ({ route, navigation }) => {
       <Button style={styles.buttonContainer}
         title="Löschen"
         onPress={handleDelete}
-        color="red"
+        color={COLORS.error}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'space-between' },
+  container: { flex: 1, padding: 20, justifyContent: 'space-between', backgroundColor: COLORS.background },
   content: {
     flex: 1,
-  },
-  image: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
   },
   artist: {
     fontSize: 18,
     color: '#666',
     marginBottom: 5,
+    textAlign: "center"
   },
   album: {
     fontSize: 16,
     color: '#888',
     marginBottom: 20,
-  },
-  sliderLabel: {
-    fontWeight: 'bold',
-    fontSize: 64,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  slider: {
-    width: '100%',
-    height: 40,
+    textAlign: "center"
   },
   score: {
     fontSize: 16,
@@ -131,22 +123,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-  savedMessage: {
-    position: 'absolute',
-    top: '50%',
-    alignSelf: 'center',
-    backgroundColor: '#4CAF50',
-    padding: 10,
-    borderRadius: 5,
-  },
-  savedMessageText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   buttonContainer: {
     marginBottom: 20,
   },
+  container: { 
+    flex: 1, 
+    padding: 25,
+    backgroundColor: COLORS.background,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 8,
+    textAlign: "center"
+  },
+  slider: {
+    width: '100%',
+    height: 12,
+    marginVertical: 25,
+  },
+  sliderLabel: {
+    fontWeight: '800',
+    fontSize: 54,
+    color: COLORS.primary,
+    marginBottom: -10,
+    textAlign: "center"
+  },
+  savedMessage: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 220,
+    borderRadius: 12, // 👈 Radius hier anwenden
+    overflow: 'hidden', // 👈 Wichtig! Schneidet das Bild ab
+    marginBottom: 20,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  savedMessageText: {
+    color: "white"
+  }
 });
 
 export default RateScreen;

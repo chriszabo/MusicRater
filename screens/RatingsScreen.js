@@ -5,6 +5,16 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { getAllRatings } from '../database';
+//import { white } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+
+const COLORS = {
+    primary: '#2A9D8F',  // Sanftes Türkis
+    secondary: '#264653', // Tiefes Blau-Grau
+    accent: '#E9C46A',   // Warmes Senfgelb
+    background: '#F8F9FA', // Sehr helles Grau
+    text: '#2B2D42',      //Dunkles Grau-Blau
+    error: '#E76F51',    // Warmes Korallenrot
+  };
 
 const RatingsScreen = ({ navigation }) => {
   const [ratings, setRatings] = useState([]);
@@ -175,9 +185,11 @@ const RatingsScreen = ({ navigation }) => {
                 created_at: item.created_at
               })}
             >
+                <View style={styles.textContainer}>
               <Text style={styles.title}>{item.title}</Text>
-              <Text>{item.artist}</Text>
-              <Text>{item.score}/10</Text>
+              <Text style={styles.artist}>{item.artist}</Text>
+              </View>
+              <Text style={styles.score}>{item.score}</Text>
             </TouchableOpacity>
           )}
         />
@@ -196,12 +208,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  toggleButtonText: {
+  artist: {
+    color: '#666',
+    marginTop: 4,
+  },
+  toggleButton: {
+    backgroundColor: COLORS.primary,
     color: 'white',
-    fontWeight: 'bold',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   filterContainer: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
     marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  ratingItem: {
+    backgroundColor: 'white',
+    padding: 16,
+    marginVertical: 5,
+    marginHorizontal: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    justifyContent: 'space-between', // 👈 Links und rechts ausrichten
+    alignItems: 'center',
   },
   filterHeader: {
     fontWeight: 'bold',
@@ -229,20 +277,31 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
   },
-  ratingItem: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
   title: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    flexWrap: 'wrap',
+    marginRight: 10, // Platz für Score
   },
   message: {
     textAlign: 'center',
     marginTop: 20,
     color: '#666',
   },
+  textContainer: {
+    flex: 1, // 👈 Nimmt verfügbaren Platz ein
+    marginRight: 10, // 👈 Abstand zum Score
+  },
+  score: {
+    fontSize: 40,
+    fontWeight: '600',
+    color: '#2A9D8F', // 👈 Akzentfarbe für den Score
+    minWidth: 50, // 👈 Verhindert Verschiebung bei kleinen Scores
+    textAlign: 'right', // 👈 Rechtsbündig
+  },
+  toggleButtonText: {
+    color: 'white'
+  }
 });
 
 export default RatingsScreen;
