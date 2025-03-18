@@ -73,18 +73,18 @@ const RatingsScreen = ({ navigation }) => {
         onPress={() => setIsFiltersVisible(!isFiltersVisible)}
       >
         <Text style={styles.toggleButtonText}>
-          {isFiltersVisible ? 'Hide Filters' : 'Show Filters'}
+          {isFiltersVisible ? 'Filter verstecken' : 'Filter anzeigen'}
         </Text>
       </TouchableOpacity>
 
       {/* Filters and Sorting Section */}
       {isFiltersVisible && (
         <View style={styles.filterContainer}>
-          <Text style={styles.filterHeader}>Filters</Text>
+          <Text style={styles.filterHeader}>Filter</Text>
           
           <TextInput
             style={styles.input}
-            placeholder="Song title..."
+            placeholder="Songname..."
             value={titleFilter}
             onChangeText={setTitleFilter}
           />
@@ -106,14 +106,14 @@ const RatingsScreen = ({ navigation }) => {
           <View style={styles.scoreFilter}>
             <TextInput
               style={[styles.input, styles.scoreInput]}
-              placeholder="Min score"
+              placeholder="Min Rating"
               value={minScore}
               onChangeText={setMinScore}
               keyboardType="numeric"
             />
             <TextInput
               style={[styles.input, styles.scoreInput]}
-              placeholder="Max score"
+              placeholder="Max Rating"
               value={maxScore}
               onChangeText={setMaxScore}
               keyboardType="numeric"
@@ -121,18 +121,18 @@ const RatingsScreen = ({ navigation }) => {
           </View>
 
           {/* Sort Controls */}
-          <Text style={styles.filterHeader}>Sort By</Text>
+          <Text style={styles.filterHeader}>Sortierung</Text>
           <View style={styles.sortRow}>
             <Picker
               style={styles.picker}
               selectedValue={sortBy}
               onValueChange={setSortBy}
             >
-              <Picker.Item label="Date" value="created_at" />
-              <Picker.Item label="Title" value="title" />
+              <Picker.Item label="Datum" value="created_at" />
+              <Picker.Item label="Songname" value="title" />
               <Picker.Item label="Artist" value="artist" />
               <Picker.Item label="Album" value="album" />
-              <Picker.Item label="Score" value="score" />
+              <Picker.Item label="Rating" value="score" />
             </Picker>
             
             <Picker
@@ -140,13 +140,13 @@ const RatingsScreen = ({ navigation }) => {
               selectedValue={sortOrder}
               onValueChange={setSortOrder}
             >
-              <Picker.Item label="Ascending" value="asc" />
-              <Picker.Item label="Descending" value="desc" />
+              <Picker.Item label="Aufsteigend" value="asc" />
+              <Picker.Item label="Absteigend" value="desc" />
             </Picker>
           </View>
 
           <Button 
-            title="Apply Filters" 
+            title="FILTER ANWENDEN" 
             onPress={applyFilters} // Use the new applyFilters function
             color="#1EB1FC"
           />
@@ -157,26 +157,28 @@ const RatingsScreen = ({ navigation }) => {
       {isLoading ? (
         <ActivityIndicator size="large" />
       ) : ratings.length === 0 ? (
-        <Text style={styles.message}>No matching ratings found.</Text>
+        <Text style={styles.message}>Keine passenden Song-Ratings gefunden.</Text>
       ) : (
         <FlatList
           data={ratings}
           keyExtractor={(item) => `${item.rating_id}-${item.song_id}`}
           renderItem={({ item }) => (
-            <View style={styles.ratingItem}>
+            <TouchableOpacity
+              style={styles.ratingItem}
+              onPress={() => navigation.navigate('Rate', {
+                songId: item.song_id,
+                initialScore: item.score,
+                title: item.title,
+                artist: item.artist,
+                album: item.album,
+                image: item.image,
+                created_at: item.created_at
+              })}
+            >
               <Text style={styles.title}>{item.title}</Text>
-              <Text>Artist: {item.artist}</Text>
-              <Text>Album: {item.album}</Text>
-              <Text>Score: {item.score}/10</Text>
-              <Text>Date: {new Date(item.created_at).toLocaleDateString()}</Text>
-              <Button
-                title="Edit"
-                onPress={() => navigation.navigate('Rate', {
-                  songId: item.song_id,
-                  initialScore: item.score
-                })}
-              />
-            </View>
+              <Text>{item.artist}</Text>
+              <Text>{item.score}/10</Text>
+            </TouchableOpacity>
           )}
         />
       )}

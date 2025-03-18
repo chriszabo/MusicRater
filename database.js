@@ -59,7 +59,8 @@ export const addSong = async (song) => {
              ratings.created_at,
              songs.title,
              songs.artist,
-             songs.album
+             songs.album,
+             songs.image_url AS image
       FROM ratings 
       JOIN songs ON ratings.song_id = songs.id
     `;

@@ -29,10 +29,10 @@ const SearchScreen = ({ navigation }) => {
         })));
       } else {
         setResults([]);
-        setError('No songs found. Try different keywords!');
+        setError('Keine Songs gefunden. Versuch mal andere Keywords!');
       }
     } catch (err) {
-      setError('Search failed. Check your connection and try again.');
+      setError('Suche fehlgeschlagen. Check mal deine Verbindung.');
       setResults([]);
     } finally {
       setIsSearching(false);
@@ -43,13 +43,13 @@ const SearchScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.searchBox}>
         <TextInput
-          placeholder="Search songs..."
+          placeholder="Songs suchen..."
           value={query}
           onChangeText={setQuery}
           style={styles.input}
         />
         <Button 
-          title="Search" 
+          title="Suche" 
           onPress={handleSearch} 
           disabled={isSearching}
           color="#1EB1FC"
@@ -61,7 +61,7 @@ const SearchScreen = ({ navigation }) => {
       {error ? (
         <Text style={styles.error}>{error}</Text>
       ) : results.length === 0 && !isSearching ? (
-        <Text style={styles.prompt}>Search for songs to rate!</Text>
+        <Text style={styles.prompt}>Suche nach Songs, um ihnen ein Rating zu verpassen!</Text>
       ) : (
         <FlatList
           data={results}
@@ -74,7 +74,11 @@ const SearchScreen = ({ navigation }) => {
                   await addSong(item);
                   navigation.navigate('Rate', { 
                     songId: item.id,
-                    initialScore: await getExistingRating(item.id)
+                    initialScore: await getExistingRating(item.id),
+                    title: item.title,
+                    artist: item.artist,
+                    album: item.album,
+                    image: item.image,
                   });
                 } catch (err) {
                   console.error("Error:", err);
