@@ -131,3 +131,11 @@ if (db) {
 await SQLite.deleteDatabaseAsync('musicrater.db'); // Delete existing DB
 db = null;
 };
+
+export const deleteRating = async (songId) => {
+    const database = await initDatabase();
+    await database.runAsync(
+      'DELETE FROM ratings WHERE song_id = ?',
+      [songId]
+    );
+  };

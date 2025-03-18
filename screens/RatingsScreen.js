@@ -59,6 +59,12 @@ const RatingsScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
+  // Apply filters and hide the filter section
+  const applyFilters = () => {
+    setRefreshKey(prev => prev + 1); // Refresh ratings
+    setIsFiltersVisible(false); // Hide filters
+  };
+
   return (
     <View style={styles.container}>
       {/* Toggle Filters Button */}
@@ -141,7 +147,7 @@ const RatingsScreen = ({ navigation }) => {
 
           <Button 
             title="Apply Filters" 
-            onPress={() => setRefreshKey(prev => prev + 1)} 
+            onPress={applyFilters} // Use the new applyFilters function
             color="#1EB1FC"
           />
         </View>
