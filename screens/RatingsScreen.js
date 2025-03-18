@@ -6,6 +6,7 @@ const RatingsScreen = ({ navigation }) => {
   const [ratings, setRatings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const loadRatings = async () => {
@@ -22,8 +23,15 @@ const RatingsScreen = ({ navigation }) => {
     };
 
     loadRatings();
-  }, []);
+  }, [refreshKey]);
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setRefreshKey(prev => prev + 1);
+    });
+    return unsubscribe;
+  }, [navigation]);
+  
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -59,7 +67,7 @@ const RatingsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <FlatList
         data={ratings}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={item => `${item.rating_id}-${item.song_id}`}
         renderItem={({ item }) => (
           <View style={styles.ratingItem}>
             <Text style={styles.title}>{item.title}</Text>
