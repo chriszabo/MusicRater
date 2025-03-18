@@ -13,6 +13,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import ErrorBoundary from './ErrorBoundary';
 import ProfileScreen from './screens/ProfileScreen';
+import StatisticsScreen from './screens/StatisticsScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -97,6 +98,16 @@ function App() {
             >
               <Tab.Screen name="Search" component={SearchStackScreen} options={{ title: 'Songs suchen' }} />
               <Tab.Screen name="Ratings" component={RatingsStackScreen} options={{ title: 'Meine Ratings' }} />
+              <Tab.Screen 
+                  name="Statistics" 
+                  component={StatisticsScreen} 
+                  options={{ 
+                    title: 'Statistiken',
+                    tabBarIcon: ({ focused, color, size }) => (
+                      <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} size={size} color={color} />
+                    )
+                  }} 
+                />
               <Tab.Screen 
                   name="Profile" 
                   component={ProfileScreen} 

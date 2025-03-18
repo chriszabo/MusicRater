@@ -172,3 +172,39 @@ export const deleteRating = async (songId) => {
       [songId]
     );
   };
+
+  export const getArtistStats = async (artistName, profileName) => {
+    const database = await initDatabase();
+    
+    // Artist Gesamtdurchschnitt
+    const artistAvgResult = await database.getFirstAsync(`
+      SELECT AVG(score) as artistAverage 
+      FROM ratings 
+      JOIN songs ON ratings.song_id = songs.id 
+      WHERE LOWER(songs.artist) = LOWER($artist) 
+      AND ratings.profile_name = $profile
+    `, { $artist: artistName, $profile: profileName });
+  
+    // Album Statistiken
+    const albumsResult = await database.getAllAsync(`
+      SELECT 
+        album, 
+        AVG(score) as avgScore, 
+        COUNT(*) as trackCount 
+      FROM ratings 
+      JOIN songs ON ratings.song_id = songs.id 
+      WHERE LOWER(songs.artist) = LOWER($artist) 
+      AND ratings.profile_name = $profile
+      GROUP BY album
+      ORDER BY avgScore DESC
+    `, { $artist: artistName, $profile: profileName });
+  
+    return {
+      artistAverage: artistAvgResult.artistAverage || 0,
+      albums: albumsResult.map(a => ({
+        album: a.album,
+        avgScore: a.avgScore,
+        trackCount: a.trackCount
+      }))
+    };
+  };
