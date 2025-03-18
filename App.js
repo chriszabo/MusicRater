@@ -14,6 +14,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import ErrorBoundary from './ErrorBoundary';
 import ProfileScreen from './screens/ProfileScreen';
 import StatisticsScreen from './screens/StatisticsScreen';
+import AlbumTracksScreen from './screens/AlbumTracksScreen';
+import CustomRatingScreen from './screens/CustomRatingScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,6 +34,7 @@ const SearchStackScreen = () => (
     }}
   >
     <SearchStack.Screen name="SearchMain" component={SearchScreen} />
+    <SearchStack.Screen name="AlbumTracks" component={AlbumTracksScreen} />
     <SearchStack.Screen name="Rate" component={RateScreen} />
   </SearchStack.Navigator>
 );
@@ -105,6 +108,16 @@ function App() {
                     title: 'Statistiken',
                     tabBarIcon: ({ focused, color, size }) => (
                       <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} size={size} color={color} />
+                    )
+                  }} 
+                />
+                <Tab.Screen 
+                  name="CustomRating" 
+                  component={CustomRatingScreen} 
+                  options={{ 
+                    title: 'Custom Rating',
+                    tabBarIcon: ({ focused, color, size }) => (
+                      <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={size} color={color} />
                     )
                   }} 
                 />

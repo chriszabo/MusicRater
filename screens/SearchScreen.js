@@ -64,27 +64,8 @@ const SearchScreen = ({ navigation }) => {
     }
   };
 
-  const handleAlbumPress = async (albumId) => {
-    try {
-      setIsSearching(true);
-      const album = await getAlbum(albumId);
-      console.log("Das Album: ", album)
-      setResults(album.tracks.items.map(track => ({
-        id: track.id,
-        title: track.name,
-        // Statt dem ganzen Artist-Objekt nur den Namen nehmen
-        artist: track.artists[0]?.name || 'Unknown Artist', 
-        // Statt dem Album-Objekt nur den Namen nehmen
-        album: album.name || 'Unknown Album',
-        duration: track.duration_ms,
-        image: album.images[0]?.url
-      })));
-      setArtistAlbums([]);
-    } catch (err) {
-      setError('Fehler beim Laden der Songs');
-    } finally {
-      setIsSearching(false);
-    }
+  const handleAlbumPress = (albumId) => {
+    navigation.navigate('AlbumTracks', { albumId });
   };
 
   return (

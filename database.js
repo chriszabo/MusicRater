@@ -208,3 +208,59 @@ export const deleteRating = async (songId) => {
       }))
     };
   };
+
+  export const getOverallStats = async (profileName) => {
+    const database = await initDatabase();
+    
+    // Gesamtanzahl und Durchschnitt
+    const overallStats = await database.getFirstAsync(`
+      SELECT 
+        COUNT(*) as totalSongs,
+        AVG(score) as averageRating
+      FROM ratings
+      WHERE profile_name = $profile
+    `, { $profile: profileName });
+  
+    // Top 3 Artists
+    const topArtists = await database.getAllAsync(`
+      SELECT 
+        artist,
+        AVG(score) as avgRating,
+        COUNT(*) as songCount
+      FROM ratings
+      JOIN songs ON ratings.song_id = songs.id
+      WHERE profile_name = $profile
+      GROUP BY artist
+      ORDER BY avgRating DESC
+      LIMIT 5
+    `, { $profile: profileName });
+  
+    // Top 3 Alben
+    const topAlbums = await database.getAllAsync(`
+      SELECT 
+        album,
+        AVG(score) as avgRating,
+        COUNT(*) as songCount
+      FROM ratings
+      JOIN songs ON ratings.song_id = songs.id
+      WHERE profile_name = $profile
+      GROUP BY album
+      ORDER BY avgRating DESC
+      LIMIT 5
+    `, { $profile: profileName });
+  
+    return {
+      totalSongs: overallStats.totalSongs || 0,
+      averageRating: overallStats.averageRating || 0,
+      topArtists: topArtists.map(a => ({
+        artist: a.artist,
+        avgRating: a.avgRating,
+        songCount: a.songCount
+      })),
+      topAlbums: topAlbums.map(a => ({
+        album: a.album,
+        avgRating: a.avgRating,
+        songCount: a.songCount
+      }))
+    };
+  };

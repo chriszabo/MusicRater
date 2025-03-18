@@ -13,6 +13,10 @@ const COLORS = {
   error: '#E76F51',    // Warmes Korallenrot
 };
 
+const LOCAL_IMAGES = {
+  'dog_icon.jpeg': require('../assets/dog_icon.jpeg'),
+};
+
 const RateScreen = ({ route, navigation }) => {
   const { songId, initialScore, title, artist, album, image, created_at } = route.params;
   const [score, setScore] = useState(initialScore ? parseFloat(initialScore) : 5.0);
@@ -53,13 +57,21 @@ const RateScreen = ({ route, navigation }) => {
     }
   };
 
+  const getImageSource = (value) => {
+    if (value.startsWith('local:')) {
+      const imageKey = value.split(':')[1];
+      return LOCAL_IMAGES[imageKey] || require('../assets/dog_icon.jpeg');
+    }
+    return { uri: value };
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
       {/* Song Information */}
       <View style={styles.imageContainer}>
       <Image 
-        source={{ uri: image }} 
+        source={getImageSource(image)} 
         style={styles.image} 
         resizeMode="cover"
       />
