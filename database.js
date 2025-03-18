@@ -57,7 +57,9 @@ export const getAllRatings = async () => {
              ratings.song_id, 
              ratings.score, 
              ratings.created_at,
-             songs.title
+             songs.title,
+             songs.artist,
+             songs.album
       FROM ratings 
       JOIN songs ON ratings.song_id = songs.id
       ORDER BY ratings.created_at DESC

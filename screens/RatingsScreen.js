@@ -31,7 +31,7 @@ const RatingsScreen = ({ navigation }) => {
     });
     return unsubscribe;
   }, [navigation]);
-  
+
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -71,6 +71,8 @@ const RatingsScreen = ({ navigation }) => {
         renderItem={({ item }) => (
           <View style={styles.ratingItem}>
             <Text style={styles.title}>{item.title}</Text>
+            <Text>Artist: {item.artist}</Text>
+            <Text>Album: {item.album}</Text>
             <Text>Rating: {item.score}/10</Text>
             <Text>Rated on: {new Date(item.created_at).toLocaleDateString()}</Text>
             <Button
