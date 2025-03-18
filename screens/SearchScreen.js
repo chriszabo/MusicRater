@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, FlatList, TextInput, Button, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, FlatList, TextInput, Button, ActivityIndicator, Text, StyleSheet, Keyboard } from 'react-native';
 import { searchSpotify } from '../spotify';
 import { addSong, getExistingRating } from '../database';
 import SongItem from '../components/SongItem';
@@ -12,6 +12,8 @@ const SearchScreen = ({ navigation }) => {
 
   const handleSearch = async () => {
     if (!query.trim()) return;
+
+    Keyboard.dismiss();
     
     try {
       setIsSearching(true);
@@ -46,6 +48,7 @@ const SearchScreen = ({ navigation }) => {
           placeholder="Songs suchen..."
           value={query}
           onChangeText={setQuery}
+          onSubmitEditing={handleSearch}
           style={styles.input}
         />
         <Button 
