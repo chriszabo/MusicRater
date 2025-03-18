@@ -50,9 +50,9 @@ export const addSong = async (song) => {
     );
   };
 
-export const getAllRatings = async () => {
+  export const getAllRatings = async (filters = {}, sort = {}) => {
     const database = await initDatabase();
-    return await database.getAllAsync(`
+    let query = `
       SELECT ratings.id AS rating_id, 
              ratings.song_id, 
              ratings.score, 
@@ -62,8 +62,52 @@ export const getAllRatings = async () => {
              songs.album
       FROM ratings 
       JOIN songs ON ratings.song_id = songs.id
-      ORDER BY ratings.created_at DESC
-    `);
+    `;
+  
+    const whereClauses = [];
+    const params = {};
+  
+    // Title Filter
+    if (filters.title) {
+      whereClauses.push("songs.title LIKE '%' || $title || '%'");
+      params.$title = filters.title;
+    }
+  
+    // Artist Filter
+    if (filters.artist) {
+      whereClauses.push("songs.artist LIKE '%' || $artist || '%'");
+      params.$artist = filters.artist;
+    }
+  
+    // Album Filter
+    if (filters.album) {
+      whereClauses.push("songs.album LIKE '%' || $album || '%'");
+      params.$album = filters.album;
+    }
+  
+    // Score Range Filter
+    if (filters.minScore !== undefined || filters.maxScore !== undefined) {
+      const min = filters.minScore ?? 0;
+      const max = filters.maxScore ?? 10;
+      whereClauses.push("ratings.score BETWEEN $minScore AND $maxScore");
+      params.$minScore = min;
+      params.$maxScore = max;
+    }
+  
+    // Combine WHERE clauses
+    if (whereClauses.length > 0) {
+      query += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+  
+    // Sorting
+    const validSortColumns = ['title', 'artist', 'album', 'score', 'created_at'];
+    if (validSortColumns.includes(sort.by)) {
+      query += ` ORDER BY ${sort.by} ${sort.order === 'desc' ? 'DESC' : 'ASC'}`;
+    } else {
+      query += ' ORDER BY created_at DESC'; // Default sorting
+    }
+  
+    return await database.getAllAsync(query, params);
   };
 
 export const getExistingRating = async (songId) => {
