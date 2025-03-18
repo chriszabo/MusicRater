@@ -4,6 +4,12 @@
 3. filter and sort your ratings as you please
 4. be happy
 
+# Setup and Launch Dev
+- install dependencies (e.g. npm install)
+- enter your spotify api credentials in database.js before you build the project
+
+# Launch Dev
+- npx expo start --clear
+
 # Note
 - only tested on android
-- enter your spotify api credentials in database.js before you build the project
