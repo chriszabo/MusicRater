@@ -23,11 +23,12 @@ export const initDatabase = async () => {
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS ratings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        song_id TEXT UNIQUE,
+        song_id TEXT NOT NULL,
         profile_name TEXT NOT NULL,
         score INTEGER CHECK(score BETWEEN 0 AND 10),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(song_id) REFERENCES songs(id)
+        FOREIGN KEY(song_id) REFERENCES songs(id),
+        UNIQUE(song_id, profile_name)
       );
     `);
   }
