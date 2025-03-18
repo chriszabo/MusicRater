@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { FlatList, View, Text, Button, ActivityIndicator, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { getAllRatings } from '../database';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, Text, TextInput, Button, FlatList, 
+  ActivityIndicator, StyleSheet, TouchableOpacity 
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { getAllRatings } from '../database';
 
 const RatingsScreen = ({ navigation }) => {
   const [ratings, setRatings] = useState([]);
@@ -19,6 +22,9 @@ const RatingsScreen = ({ navigation }) => {
   // Sort states
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+
+  // Collapsible state
+  const [isFiltersVisible, setIsFiltersVisible] = useState(false);
 
   const loadRatings = async () => {
     try {
@@ -45,6 +51,7 @@ const RatingsScreen = ({ navigation }) => {
     loadRatings();
   }, [refreshKey]);
 
+  // Add to existing focus listener
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       setRefreshKey(prev => prev + 1);
@@ -52,114 +59,95 @@ const RatingsScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.error}>{error}</Text>
-        <Button title="Try Again" onPress={() => loadRatings()} />
-      </View>
-    );
-  }
-
-  if (ratings.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.message}>No ratings yet!</Text>
-        <Text style={styles.subMessage}>Rate songs to see them here.</Text>
-        <Button
-          title="Search Songs"
-          onPress={() => navigation.navigate('Search')}
-          color="#1EB1FC"
-        />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      {/* Filter Section */}
-      <ScrollView style={styles.filterContainer}>
-        <Text style={styles.filterHeader}>Filters</Text>
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Song title..."
-          value={titleFilter}
-          onChangeText={setTitleFilter}
-        />
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Artist..."
-          value={artistFilter}
-          onChangeText={setArtistFilter}
-        />
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Album..."
-          value={albumFilter}
-          onChangeText={setAlbumFilter}
-        />
-        
-        <View style={styles.scoreFilter}>
-          <TextInput
-            style={[styles.input, styles.scoreInput]}
-            placeholder="Min score"
-            value={minScore}
-            onChangeText={setMinScore}
-            keyboardType="numeric"
-          />
-          <TextInput
-            style={[styles.input, styles.scoreInput]}
-            placeholder="Max score"
-            value={maxScore}
-            onChangeText={setMaxScore}
-            keyboardType="numeric"
-          />
-        </View>
+      {/* Toggle Filters Button */}
+      <TouchableOpacity
+        style={styles.toggleButton}
+        onPress={() => setIsFiltersVisible(!isFiltersVisible)}
+      >
+        <Text style={styles.toggleButtonText}>
+          {isFiltersVisible ? 'Hide Filters' : 'Show Filters'}
+        </Text>
+      </TouchableOpacity>
 
-        {/* Sort Controls */}
-        <Text style={styles.filterHeader}>Sort By</Text>
-        <View style={styles.sortRow}>
-          <Picker
-            style={styles.picker}
-            selectedValue={sortBy}
-            onValueChange={setSortBy}
-          >
-            <Picker.Item label="Date" value="created_at" />
-            <Picker.Item label="Title" value="title" />
-            <Picker.Item label="Artist" value="artist" />
-            <Picker.Item label="Album" value="album" />
-            <Picker.Item label="Score" value="score" />
-          </Picker>
+      {/* Filters and Sorting Section */}
+      {isFiltersVisible && (
+        <View style={styles.filterContainer}>
+          <Text style={styles.filterHeader}>Filters</Text>
           
-          <Picker
-            style={styles.picker}
-            selectedValue={sortOrder}
-            onValueChange={setSortOrder}
-          >
-            <Picker.Item label="Ascending" value="asc" />
-            <Picker.Item label="Descending" value="desc" />
-          </Picker>
+          <TextInput
+            style={styles.input}
+            placeholder="Song title..."
+            value={titleFilter}
+            onChangeText={setTitleFilter}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Artist..."
+            value={artistFilter}
+            onChangeText={setArtistFilter}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Album..."
+            value={albumFilter}
+            onChangeText={setAlbumFilter}
+          />
+          
+          <View style={styles.scoreFilter}>
+            <TextInput
+              style={[styles.input, styles.scoreInput]}
+              placeholder="Min score"
+              value={minScore}
+              onChangeText={setMinScore}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={[styles.input, styles.scoreInput]}
+              placeholder="Max score"
+              value={maxScore}
+              onChangeText={setMaxScore}
+              keyboardType="numeric"
+            />
+          </View>
+
+          {/* Sort Controls */}
+          <Text style={styles.filterHeader}>Sort By</Text>
+          <View style={styles.sortRow}>
+            <Picker
+              style={styles.picker}
+              selectedValue={sortBy}
+              onValueChange={setSortBy}
+            >
+              <Picker.Item label="Date" value="created_at" />
+              <Picker.Item label="Title" value="title" />
+              <Picker.Item label="Artist" value="artist" />
+              <Picker.Item label="Album" value="album" />
+              <Picker.Item label="Score" value="score" />
+            </Picker>
+            
+            <Picker
+              style={styles.picker}
+              selectedValue={sortOrder}
+              onValueChange={setSortOrder}
+            >
+              <Picker.Item label="Ascending" value="asc" />
+              <Picker.Item label="Descending" value="desc" />
+            </Picker>
+          </View>
+
+          <Button 
+            title="Apply Filters" 
+            onPress={() => setRefreshKey(prev => prev + 1)} 
+            color="#1EB1FC"
+          />
         </View>
+      )}
 
-        <Button 
-          title="Apply Filters" 
-          onPress={() => setRefreshKey(prev => prev + 1)} 
-          color="#1EB1FC"
-        />
-      </ScrollView>
-
-      {/* Existing rating list rendering */}
+      {/* Ratings List */}
       {isLoading ? (
         <ActivityIndicator size="large" />
       ) : ratings.length === 0 ? (
@@ -167,6 +155,7 @@ const RatingsScreen = ({ navigation }) => {
       ) : (
         <FlatList
           data={ratings}
+          keyExtractor={(item) => `${item.rating_id}-${item.song_id}`}
           renderItem={({ item }) => (
             <View style={styles.ratingItem}>
               <Text style={styles.title}>{item.title}</Text>
@@ -189,27 +178,63 @@ const RatingsScreen = ({ navigation }) => {
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    filterContainer: { padding: 15, maxHeight: '40%' },
-    filterHeader: { fontWeight: 'bold', marginVertical: 10 },
-    input: { 
-        borderWidth: 1, 
-        borderColor: '#ccc', 
-        borderRadius: 5, 
-        padding: 10, 
-        marginBottom: 10 
-    },
-    scoreFilter: { flexDirection: 'row', gap: 10 },
-    scoreInput: { flex: 1 },
-    sortRow: { flexDirection: 'row', gap: 10 },
-    picker: { flex: 1, height: 50 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-    ratingItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#ccc' },
-    title: { fontSize: 16, fontWeight: 'bold' },
-    error: { color: 'red', marginBottom: 20 },
-    message: { fontSize: 18, marginBottom: 10 },
-    subMessage: { color: '#666', marginBottom: 20 }
+  container: { flex: 1, padding: 15 },
+  toggleButton: {
+    backgroundColor: '#1EB1FC',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  toggleButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  filterContainer: {
+    marginBottom: 15,
+  },
+  filterHeader: {
+    fontWeight: 'bold',
+    marginVertical: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+  },
+  scoreFilter: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  scoreInput: {
+    flex: 1,
+  },
+  sortRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  picker: {
+    flex: 1,
+    height: 50,
+  },
+  ratingItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  message: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#666',
+  },
 });
 
 export default RatingsScreen;
