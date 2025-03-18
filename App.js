@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import ErrorBoundary from './ErrorBoundary';
+import ProfileScreen from './screens/ProfileScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -96,6 +97,16 @@ function App() {
             >
               <Tab.Screen name="Search" component={SearchStackScreen} options={{ title: 'Songs suchen' }} />
               <Tab.Screen name="Ratings" component={RatingsStackScreen} options={{ title: 'Meine Ratings' }} />
+              <Tab.Screen 
+                  name="Profile" 
+                  component={ProfileScreen} 
+                  options={{ 
+                    title: 'Profil',
+                    tabBarIcon: ({ focused, color, size }) => (
+                      <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
+                    )
+                  }} 
+                />
             </Tab.Navigator>
           </SafeAreaView>
         </NavigationContainer>

@@ -1,8 +1,10 @@
 import * as SQLite from 'expo-sqlite';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 let db = null;
 
 export const initDatabase = async () => {
+  //await resetDatabase();
     try {
   if (!db) {
     db = await SQLite.openDatabaseAsync('musicrater.db');
@@ -19,14 +21,15 @@ export const initDatabase = async () => {
       );
     `);
     await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS ratings (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          song_id TEXT UNIQUE,
-          score INTEGER CHECK(score BETWEEN 0 AND 10),
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY(song_id) REFERENCES songs(id)
-        );
-      `);
+      CREATE TABLE IF NOT EXISTS ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        song_id TEXT UNIQUE,
+        profile_name TEXT NOT NULL,
+        score INTEGER CHECK(score BETWEEN 0 AND 10),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(song_id) REFERENCES songs(id)
+      );
+    `);
   }
   return db;
 } catch (error)
@@ -46,18 +49,38 @@ export const addSong = async (song) => {
     );
   };
 
-  export const addRating = async (songId, score) => {
-    const database = await initDatabase();
+export const addRating = async (songId, score) => {
+  const database = await initDatabase();
+  try {
+    await database.execAsync('BEGIN TRANSACTION');
+    
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    console.log("Profile:", profileName)
+    if (!profileName) throw new Error('No profile selected');
+
     await database.runAsync(
-      `INSERT INTO ratings (song_id, score)
-       VALUES (?, ?)
-       ON CONFLICT(song_id) 
-       DO UPDATE SET score = excluded.score, created_at = CURRENT_TIMESTAMP`,
-      [songId, Math.round(score)]
+      `INSERT INTO ratings (song_id, score, profile_name) 
+      VALUES (?, ?, ?)
+      ON CONFLICT(song_id)
+      DO UPDATE SET score = excluded.score, created_at = CURRENT_TIMESTAMP`,
+      [songId, Math.round(score), profileName]
     );
-  };
+    
+    await database.execAsync('COMMIT');
+  } catch (error) {
+    await database.execAsync('ROLLBACK');
+    console.error("Error in addRating:", error);
+    throw error;
+  }
+};
 
   export const getAllRatings = async (filters = {}, sort = {}) => {
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    if (!profileName) return [];
+    
+    // Add profile filter
+    const whereClauses = ["profile_name = $profileName"];
+    const params = { ...filters, $profileName: profileName };
     const database = await initDatabase();
     let query = `
       SELECT ratings.id AS rating_id, 
@@ -72,8 +95,8 @@ export const addSong = async (song) => {
       JOIN songs ON ratings.song_id = songs.id
     `;
   
-    const whereClauses = [];
-    const params = {};
+    // const whereClauses = [];
+    // const params = {};
   
     // Title Filter
     if (filters.title) {
@@ -137,6 +160,7 @@ if (db) {
     await db.closeAsync();
 }
 await SQLite.deleteDatabaseAsync('musicrater.db'); // Delete existing DB
+console.log("db deleted")
 db = null;
 };
 

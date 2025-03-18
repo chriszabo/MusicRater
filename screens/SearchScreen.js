@@ -94,7 +94,8 @@ const SearchScreen = ({ navigation }) => {
                     image: item.image,
                   });
                 } catch (err) {
-                  console.error("Error:", err);
+                  console.error("Navigation error:", err);
+                  Alert.alert("Error", "Could not load song details");
                 }
               }}
             />

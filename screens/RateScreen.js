@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'; // useRef hinzufügen
 import { View, Text, StyleSheet, Image, Alert, Button } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { addRating, deleteRating } from '../database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const COLORS = {
   primary: '#2A9D8F',  // Sanftes Türkis
@@ -38,9 +39,15 @@ const RateScreen = ({ route, navigation }) => {
 
   const handleSaveRating = async (value) => {
     try {
+      const profileName = await AsyncStorage.getItem('currentProfile');
+      if (!profileName) {
+        Alert.alert("Kein Profil", "Bitte erstelle zuerst ein Profil");
+        return;
+      }
+      
       await addRating(songId, Math.round(value));
-      setShowSavedMessage(true); // Zeige die Nachricht an
-      setTimeout(() => setShowSavedMessage(false), 2000); // Verstecke die Nachricht nach 2 Sekunden
+      setShowSavedMessage(true);
+      setTimeout(() => setShowSavedMessage(false), 2000);
     } catch (error) {
       console.error("Failed to save rating:", error);
     }
