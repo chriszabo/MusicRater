@@ -24,6 +24,15 @@ const SearchScreen = ({ navigation }) => {
     };
   };
 
+  const handleModeToggle = () => {
+    setMode(prev => prev === 'artist' ? 'track' : 'artist');
+    // Zustände zurücksetzen bei Modus-Wechsel
+    setArtistAlbums([]);
+    setResults([]);
+    setCurrentArtist(null);
+    setQuery('');
+  };
+
   const handleSearch = async () => {
     if (!query.trim()) return;
     Keyboard.dismiss();
@@ -80,7 +89,7 @@ const SearchScreen = ({ navigation }) => {
         />
         <Button
           title={mode === 'artist' ? 'Zur Song-Suche' : 'Zur Interpreten-Suche'}
-          onPress={() => setMode(mode === 'artist' ? 'track' : 'artist')}
+          onPress={handleModeToggle}
           color="#2A9D8F"
         />
       </View>
