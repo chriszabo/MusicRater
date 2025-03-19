@@ -65,7 +65,7 @@ const CustomRatingScreen = () => {
       />
 
       <TextInput
-        placeholder="Artist"
+        placeholder="Interpret"
         value={artist}
         onChangeText={setArtist}
         style={styles.input}

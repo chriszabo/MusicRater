@@ -101,7 +101,7 @@ const RatingsScreen = ({ navigation }) => {
           
           <TextInput
             style={styles.input}
-            placeholder="Artist..."
+            placeholder="Interpret..."
             value={artistFilter}
             onChangeText={setArtistFilter}
           />
@@ -182,7 +182,7 @@ const RatingsScreen = ({ navigation }) => {
                 artist: item.artist,
                 album: item.album,
                 image: item.image,
-                created_at: item.created_at
+                created_at: item.created_at,
               })}
             >
                 <View style={styles.textContainer}>

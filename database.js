@@ -42,6 +42,7 @@ export const initDatabase = async () => {
 
 export const addSong = async (song) => {
     const database = await initDatabase();
+    console.log("Add Song to db: ", song)
     await database.runAsync(
       `INSERT OR REPLACE INTO songs 
       (id, title, artist, album, duration, image_url) 
@@ -52,6 +53,8 @@ export const addSong = async (song) => {
 
 export const addRating = async (songId, score) => {
   const database = await initDatabase();
+  console.log("Add Rating SongID: ", songId)
+  console.log("Add Rating Score: ", score)
   try {
     await database.execAsync('BEGIN TRANSACTION');
     
@@ -62,7 +65,7 @@ export const addRating = async (songId, score) => {
     await database.runAsync(
       `INSERT INTO ratings (song_id, score, profile_name) 
       VALUES (?, ?, ?)
-      ON CONFLICT(song_id)
+      ON CONFLICT(song_id, profile_name)
       DO UPDATE SET score = excluded.score, created_at = CURRENT_TIMESTAMP`,
       [songId, Math.round(score), profileName]
     );
@@ -214,14 +217,15 @@ export const deleteRating = async (songId) => {
     
     // Gesamtanzahl und Durchschnitt
     const overallStats = await database.getFirstAsync(`
-      SELECT 
-        COUNT(*) as totalSongs,
-        AVG(score) as averageRating
-      FROM ratings
-      WHERE profile_name = $profile
-    `, { $profile: profileName });
+    SELECT 
+      COUNT(*) as totalSongs,
+      AVG(score) as averageRating,
+      SUM(CASE WHEN score = 10 THEN 1 ELSE 0 END) as perfectRatings
+    FROM ratings
+    WHERE profile_name = $profile
+  `, { $profile: profileName });
   
-    // Top 3 Artists
+    // Top 5 Artists
     const topArtists = await database.getAllAsync(`
       SELECT 
         artist,
@@ -235,7 +239,7 @@ export const deleteRating = async (songId) => {
       LIMIT 5
     `, { $profile: profileName });
   
-    // Top 3 Alben
+    // Top 5 Alben
     const topAlbums = await database.getAllAsync(`
       SELECT 
         album,
@@ -252,6 +256,7 @@ export const deleteRating = async (songId) => {
     return {
       totalSongs: overallStats.totalSongs || 0,
       averageRating: overallStats.averageRating || 0,
+      perfectRatings: overallStats.perfectRatings || 0,
       topArtists: topArtists.map(a => ({
         artist: a.artist,
         avgRating: a.avgRating,
@@ -263,4 +268,18 @@ export const deleteRating = async (songId) => {
         songCount: a.songCount
       }))
     };
+  };
+
+  export const getRatedSongsByArtist = async (artist, profileName) => {
+    const database = await initDatabase();
+    return await database.getAllAsync(`
+      SELECT song_id 
+      FROM ratings 
+      JOIN songs ON ratings.song_id = songs.id 
+      WHERE songs.artist = $artist 
+      AND ratings.profile_name = $profile
+    `, { 
+      $artist: artist,
+      $profile: profileName 
+    });
   };

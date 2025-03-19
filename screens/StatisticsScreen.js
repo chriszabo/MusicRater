@@ -92,27 +92,31 @@ const StatisticsScreen = () => {
             value={overallStats?.totalSongs || 0}
           />
           <StatItem 
-            label="Durchschnittsrating" 
+            label="Perfekte 10" 
+            value={overallStats?.perfectRatings || 0}
+          />
+          <StatItem 
+            label="Ø-Score" 
             value={overallStats?.averageRating?.toFixed(1) || '0.0'}
             unit="/10"
           />
         </View>
 
         <TopList 
-          title="Top 3 Künstler"
+          title="Top 5 Interpreten"
           data={overallStats?.topArtists}
           renderItem={(item) => `${item.artist} (${item.avgRating.toFixed(1)})`}
         />
 
         <TopList 
-          title="Top 3 Alben"
+          title="Top 3 Interpreten"
           data={overallStats?.topAlbums}
           renderItem={(item) => `${item.album} (${item.avgRating.toFixed(1)})`}
         />
       </View>
 
       <TextInput
-        placeholder="Hier Statistik für Artist abrufen..."
+        placeholder="Gib einen Interpreten ein..."
         value={artist}
         onChangeText={setArtist}
         onSubmitEditing={handleSearch}

@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react'; // useRef hinzufügen
-import { View, Text, StyleSheet, Image, Alert, Button } from 'react-native';
+import { View, Text, StyleSheet, Image, Alert, Button, TouchableOpacity } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { addRating, deleteRating } from '../database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
+
 
 const COLORS = {
   primary: '#2A9D8F',  // Sanftes Türkis
@@ -18,10 +20,27 @@ const LOCAL_IMAGES = {
 };
 
 const RateScreen = ({ route, navigation }) => {
-  const { songId, initialScore, title, artist, album, image, created_at } = route.params;
+  const { songId, initialScore, title, artist, album, image, created_at} = route.params;
   const [score, setScore] = useState(initialScore ? parseFloat(initialScore) : 5.0);
   const sliderValue = useRef(score); // useRef für den Slider-Wert
   const [showSavedMessage, setShowSavedMessage] = useState(false);
+
+  const handleOpenExternalUrl = async () => {
+    try {
+      const link = "spotify:track:" + songId
+      //const link = "https://www.google.com"
+      //const supported = await Linking.canOpenURL(link);
+      const supported = true;
+      if (supported) {
+        await Linking.openURL(link);
+      } else {
+        Alert.alert("Fehler", "Die URL kann nicht geöffnet werden.");
+      }
+    } catch (error) {
+      console.error("Fehler beim Öffnen der URL:", error);
+      Alert.alert("Fehler", "Ein Fehler ist aufgetreten beim Öffnen der URL.");
+    }
+  };
 
   const handleDelete = () => {
     Alert.alert(
@@ -58,6 +77,7 @@ const RateScreen = ({ route, navigation }) => {
   };
 
   const getImageSource = (value) => {
+    if (!value) return { uri: value}
     if (value.startsWith('local:')) {
       const imageKey = value.split(':')[1];
       return LOCAL_IMAGES[imageKey] || require('../assets/dog_icon.jpeg');
@@ -79,6 +99,11 @@ const RateScreen = ({ route, navigation }) => {
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.artist}>{artist}</Text>
       <Text style={styles.album}>{album}</Text>
+      {!songId.startsWith("custom") && (
+      <TouchableOpacity onPress={handleOpenExternalUrl}>
+        <Text style={styles.externalUrlText}>Öffne auf Spotify</Text>
+      </TouchableOpacity>
+      )}
 
       {/* Rating Slider */}
       <Text style={styles.sliderLabel}>{Math.round(score)}/10</Text>
@@ -97,7 +122,9 @@ const RateScreen = ({ route, navigation }) => {
         maximumTrackTintColor="#D3D3D3"
         thumbTintColor="#1EB1FC"
       />
-      <Text style={styles.date}>Zuletzt bearbeitet am {new Date(created_at).toLocaleDateString()}</Text>
+      {created_at && (
+        <Text style={styles.date}>Zuletzt bearbeitet am {new Date(created_at).toLocaleDateString()}</Text>
+      )}
 
       {showSavedMessage && (
         <View style={styles.savedMessage}>
@@ -188,7 +215,13 @@ const styles = StyleSheet.create({
   },
   savedMessageText: {
     color: "white"
-  }
+  },
+  externalUrlText: {
+    color: COLORS.primary,
+    textDecorationLine: 'underline',
+    textAlign: 'center',
+    marginTop: 10,
+  },
 });
 
 export default RateScreen;

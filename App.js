@@ -16,6 +16,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import StatisticsScreen from './screens/StatisticsScreen';
 import AlbumTracksScreen from './screens/AlbumTracksScreen';
 import CustomRatingScreen from './screens/CustomRatingScreen';
+import TopTrackScreen from './screens/TopTrackScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -34,6 +35,7 @@ const SearchStackScreen = () => (
     }}
   >
     <SearchStack.Screen name="SearchMain" component={SearchScreen} />
+    <SearchStack.Screen name="TopTracks" component={TopTrackScreen} />
     <SearchStack.Screen name="AlbumTracks" component={AlbumTracksScreen} />
     <SearchStack.Screen name="Rate" component={RateScreen} />
   </SearchStack.Navigator>

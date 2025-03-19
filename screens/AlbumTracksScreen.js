@@ -24,7 +24,7 @@ const AlbumTracksScreen = ({ route, navigation }) => {
           artist: track.artists[0]?.name || 'Unknown Artist',
           album: album.name,
           duration: track.duration_ms,
-          image: album.images[0]?.url
+          image: album.images[0]?.url,
         }));
         
         setTracks(formattedTracks);
@@ -56,7 +56,7 @@ const AlbumTracksScreen = ({ route, navigation }) => {
                   title: item.title,
                   artist: item.artist,
                   album: item.album,
-                  image: item.image,
+                  image: item.image
                 });
               }}
             />

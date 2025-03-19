@@ -17,10 +17,10 @@ const SearchScreen = ({ navigation }) => {
     return {
       id: track.id || '',
       title: track.name || 'Unbekannter Titel',
-      artist: track.artists?.[0]?.name || 'Unbekannter Künstler',
+      artist: track.artists?.[0]?.name || 'Unbekannter Interpret',
       album: track.album?.name || 'Unbekanntes Album',
       duration: track.duration_ms || 0,
-      image: track.album?.images?.[0]?.url || ''
+      image: track.album?.images?.[0]?.url || '',
     };
   };
 
@@ -37,7 +37,7 @@ const SearchScreen = ({ navigation }) => {
         const artist = await searchArtists(query);
         console.log("Artist gefunden:", artist)
         if (!artist) {
-          setError('Kein Künstler gefunden');
+          setError('Keinen Interpreten gefunden');
           return;
         }
         console.log("schon weiter")
@@ -54,7 +54,7 @@ const SearchScreen = ({ navigation }) => {
           artist: item.artists[0].name,
           album: item.album.name,
           duration: item.duration_ms,
-          image: item.album.images[0]?.url
+          image: item.album.images[0]?.url,
         })));
       }
     } catch (err) {
@@ -72,14 +72,14 @@ const SearchScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.searchHeader}>
         <TextInput
-          placeholder={mode === 'artist' ? "Künstler suchen..." : "Songs suchen..."}
+          placeholder={mode === 'artist' ? "Interpreten suchen..." : "Songs suchen..."}
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={handleSearch}
           style={styles.input}
         />
         <Button
-          title={mode === 'artist' ? 'Zur Song-Suche' : 'Zur Artist-Suche'}
+          title={mode === 'artist' ? 'Zur Song-Suche' : 'Zur Interpreten-Suche'}
           onPress={() => setMode(mode === 'artist' ? 'track' : 'artist')}
           color="#2A9D8F"
         />
@@ -114,7 +114,7 @@ const SearchScreen = ({ navigation }) => {
       ) : results.length === 0 && !isSearching ? (
         <Text style={styles.prompt}>
           {mode === 'artist' 
-            ? "Suche nach Künstlern, um ihre Alben zu sehen" 
+            ? "Suche nach Interpreten, um ihre Alben zu sehen" 
             : "Suche nach Songs, um sie zu bewerten"}
         </Text>
       ) : (
