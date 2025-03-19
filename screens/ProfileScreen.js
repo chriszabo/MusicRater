@@ -103,18 +103,23 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.currentProfile}>Current Profile: {currentProfile || "None"}</Text>
+      <Text style={styles.currentProfile}>Aktuelles Profil: {currentProfile || "None"}</Text>
       
       <TextInput
         style={styles.input}
-        placeholder="New Profile"
+        placeholder="Profil setzen"
         value={profileName}
         onChangeText={setProfileName}
       />
-      <Button title="Save Profile" onPress={saveProfile} color="#1EB1FC" />
-      
-      <Button title="Export Profile" onPress={handleExport} color="#2A9D8F" />
-      <Button title="Import Profile" onPress={handleImport} color="#2A9D8F" />
+      <View style={styles.button}>
+      <Button title="Profil bestätigen" onPress={saveProfile} color="#1EB1FC" />
+      </View>
+      <View style={styles.button}>
+      <Button title="Profil-Ratings exportieren" onPress={handleExport} color="#2A9D8F" />
+      </View>
+      <View style={styles.button}>
+      <Button title="Profil-Ratings importieren" onPress={handleImport} color="#2A9D8F" />
+      </View>
     </View>
   );
 };
@@ -133,6 +138,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontWeight: '600',
     color: '#2A9D8F',
+  },
+  button: {
+    marginBottom: 10,
   }
 });
 
