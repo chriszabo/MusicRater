@@ -4,6 +4,15 @@ import { addSong, addRating } from '../database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 
+const COLORS = {
+  primary: '#2A9D8F',  // Sanftes Türkis
+  secondary: '#264653', // Tiefes Blau-Grau
+  accent: '#E9C46A',   // Warmes Senfgelb
+  background: '#F8F9FA', // Sehr helles Grau
+  text: '#2B2D42',      //Dunkles Grau-Blau
+  error: '#E76F51',    // Warmes Korallenrot
+};
+
 // Lokales Bild (Pfad anpassen)
 const DEFAULT_IMAGE = require('../assets/dog_icon.jpeg'); 
 
@@ -79,7 +88,7 @@ const CustomRatingScreen = () => {
       />
 
 
-      <Text style={styles.scoreText}>Rating: {Math.round(score)}/10</Text>
+      <Text style={styles.scoreText}>{Math.round(score)}/10</Text>
       <Slider
         minimumValue={0}
         maximumValue={10}
@@ -128,10 +137,11 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
   scoreText: {
-    fontSize: 18,
-    textAlign: 'center',
+    fontWeight: '800',
+    fontSize: 54,
+    color: COLORS.primary,
     marginBottom: 10,
-    color: '#2B2D42',
+    textAlign: "center"
   },
   error: {
     color: '#E76F51',

@@ -1,33 +1,55 @@
 import React, { useState } from 'react';
 import { View, FlatList, TextInput, Button, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image } from 'react-native';
-import { searchSpotify, searchArtists, getAlbum, getArtistAlbums } from '../spotify';
+import { searchSpotify, searchArtists, getAlbum, getArtistAlbums, getArtistTopTracks } from '../spotify';
 import { addSong, getExistingRating } from '../database';
 import SongItem from '../components/SongItem';
+import { Ionicons } from '@expo/vector-icons';
+
+const modeIcons = {
+  track: 'person',
+  artist: 'trophy',
+  topTracks: 'musical-notes'
+};
+
+const modeConfig = {
+  track: {
+    icon: 'musical-notes',
+    placeholder: 'Songs suchen...',
+    next: 'artist'
+  },
+  artist: {
+    icon: 'people',
+    placeholder: 'Interpreten suchen...',
+    next: 'topTracks'
+  },
+  topTracks: {
+    icon: 'trophy',
+    placeholder: 'Interpreten für Top-Tracks...',
+    next: 'track'
+  }
+};
 
 const SearchScreen = ({ navigation }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [artistAlbums, setArtistAlbums] = useState([]);
+  const [artistTracks, setArtistTracks] = useState([]);
   const [currentArtist, setCurrentArtist] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
-  const [mode, setMode] = useState('track'); // 'track' oder 'artist'
+  const [mode, setMode] = useState('track'); // 'track', 'artist' oder 'topTracks'
 
-  const validateTrack = (track) => {
-    return {
-      id: track.id || '',
-      title: track.name || 'Unbekannter Titel',
-      artist: track.artists?.[0]?.name || 'Unbekannter Interpret',
-      album: track.album?.name || 'Unbekanntes Album',
-      duration: track.duration_ms || 0,
-      image: track.album?.images?.[0]?.url || '',
-    };
+  const modeTitles = {
+    track: 'Zur Interpreten-Suche',
+    artist: 'Zur Top-Tracks-Suche',
+    topTracks: 'Zur Song-Suche'
   };
 
   const handleModeToggle = () => {
-    setMode(prev => prev === 'artist' ? 'track' : 'artist');
-    // Zustände zurücksetzen bei Modus-Wechsel
+    setMode(prev => modeConfig[prev].next);
+    // Zustände zurücksetzen
     setArtistAlbums([]);
+    setArtistTracks([]);
     setResults([]);
     setCurrentArtist(null);
     setQuery('');
@@ -42,112 +64,166 @@ const SearchScreen = ({ navigation }) => {
       setError('');
 
       if (mode === 'artist') {
-        // Artist-Modus: Suche nach Künstlern und deren Alben
+        // Artist-Modus: Suche nach Künstlern und Alben
         const artist = await searchArtists(query);
-        console.log("Artist gefunden:", artist)
         if (!artist) {
           setError('Keinen Interpreten gefunden');
           return;
         }
-        console.log("schon weiter")
         const albums = await getArtistAlbums(artist.id);
         setCurrentArtist(artist);
         setArtistAlbums(albums.items);
         setResults([]);
-      } else {
+      } 
+      else if (mode === 'topTracks') {
+        // TopTracks-Modus: Suche nach Künstler und Top-Tracks
+        const artist = await searchArtists(query);
+        if (!artist) {
+          setError('Keinen Interpreten gefunden');
+          return;
+        }
+        const tracks = await getArtistTopTracks(artist.id);
+        setCurrentArtist(artist);
+        setArtistTracks(tracks);
+        setResults([]);
+      }
+      else {
         // Track-Modus: Normale Song-Suche
         const data = await searchSpotify(query);
-        setResults(data.tracks.items.map(item => ({
-          id: item.id,
-          title: item.name,
-          artist: item.artists[0].name,
-          album: item.album.name,
-          duration: item.duration_ms,
-          image: item.album.images[0]?.url,
-        })));
+        setResults(data.tracks.items.map(validateTrack));
       }
     } catch (err) {
+      console.log(err)
       setError('Suche fehlgeschlagen');
     } finally {
       setIsSearching(false);
     }
   };
 
+  const validateTrack = (track) => ({
+    id: track.id || '',
+    title: track.name || 'Unbekannter Titel',
+    artist: track.artists?.[0]?.name || 'Unbekannter Interpret',
+    album: track.album?.name || 'Unbekanntes Album',
+    duration: track.duration_ms || 0,
+    image: track.album?.images?.[0]?.url || '',
+  });
+
   const handleAlbumPress = (albumId) => {
     navigation.navigate('AlbumTracks', { albumId });
   };
+
+  const handleTrackPress = async (track) => {
+    await addSong(track);
+    navigation.navigate('Rate', { 
+      songId: track.id,
+      initialScore: await getExistingRating(track.id),
+      ...track
+    });
+  };
+
+  const renderContent = () => {
+    if (error) return <Text style={styles.error}>{error}</Text>;
+    if (isSearching) return <ActivityIndicator size="large" />;
+    
+    if (mode === 'artist' && artistAlbums.length > 0) {
+      return renderAlbums();
+    }
+    if (mode === 'topTracks' && artistTracks.length > 0) {
+      return renderTopTracks();
+    }
+    if (results.length > 0) {
+      return renderTracks();
+    }
+    
+    return (
+      <Text style={styles.prompt}>
+        {mode === 'artist' 
+          ? "Suche nach Interpreten, um ihre Alben zu sehen"
+          : mode === 'topTracks'
+          ? "Suche nach Interpreten, um ihre Spotify Top-Tracks zu sehen"
+          : "Suche nach Songs, um sie zu bewerten"}
+      </Text>
+    );
+  };
+
+  const renderAlbums = () => (
+    <FlatList
+      data={artistAlbums}
+      keyExtractor={item => item.id}
+      renderItem={({ item }) => (
+        <TouchableOpacity 
+          style={styles.albumItem}
+          onPress={() => handleAlbumPress(item.id)}
+        >
+          <Image 
+            source={{ uri: item.images[0]?.url }} 
+            style={styles.albumImage} 
+          />
+          <View style={styles.albumInfo}>
+            <Text style={styles.albumTitle}>{item.name}</Text>
+            <Text style={styles.albumDetails}>
+              {item.total_tracks} Songs • {new Date(item.release_date).getFullYear()}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
+    />
+  );
+
+  const renderTopTracks = () => (
+    <FlatList
+      data={artistTracks}
+      keyExtractor={item => item.id}
+      renderItem={({ item }) => (
+        <SongItem
+          song={validateTrack(item)}
+          onPress={() => handleTrackPress(validateTrack(item))}
+        />
+      )}
+    />
+  );
+
+  const renderTracks = () => (
+    <FlatList
+      data={results}
+      keyExtractor={item => item.id}
+      renderItem={({ item }) => (
+        <SongItem
+          song={item}
+          onPress={() => handleTrackPress(item)}
+        />
+      )}
+    />
+  );
 
   return (
     <View style={styles.container}>
       <View style={styles.searchHeader}>
         <TextInput
-          placeholder={mode === 'artist' ? "Interpreten suchen..." : "Songs suchen..."}
+          placeholder={
+            mode === 'artist' ? "Interpreten suchen..." :
+            mode === 'topTracks' ? "Interpreten für Top-Tracks suchen..." :
+            "Songs suchen..."
+          }
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={handleSearch}
           style={styles.input}
         />
-        <Button
-          title={mode === 'artist' ? 'Zur Song-Suche' : 'Zur Interpreten-Suche'}
+        <TouchableOpacity
           onPress={handleModeToggle}
-          color="#2A9D8F"
-        />
+          style={styles.modeButton}
+        >
+          <Ionicons 
+            name={modeConfig[mode].icon} 
+            size={28}
+            color="#2A9D8F"
+          />
+        </TouchableOpacity>
       </View>
 
-      {isSearching && <ActivityIndicator size="large" />}
-
-      {error ? (
-        <Text style={styles.error}>{error}</Text>
-      ) : artistAlbums.length > 0 ? (
-        <FlatList
-          data={artistAlbums}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity 
-              style={styles.albumItem}
-              onPress={() => handleAlbumPress(item.id)}
-            >
-              <Image 
-                source={{ uri: item.images[0]?.url }} 
-                style={styles.albumImage} 
-              />
-              <View style={styles.albumInfo}>
-                <Text style={styles.albumTitle}>{item.name}</Text>
-                <Text style={styles.albumDetails}>
-                  {item.total_tracks} Songs • {new Date(item.release_date).getFullYear()}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      ) : results.length === 0 && !isSearching ? (
-        <Text style={styles.prompt}>
-          {mode === 'artist' 
-            ? "Suche nach Interpreten, um ihre Alben zu sehen" 
-            : "Suche nach Songs, um sie zu bewerten"}
-        </Text>
-      ) : (
-        <FlatList
-          data={results}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <SongItem
-              song={item}
-              onPress={async () => {
-                await addSong(item);
-                navigation.navigate('Rate', { 
-                  songId: item.id,
-                  initialScore: await getExistingRating(item.id),
-                  title: item.title,
-                  artist: item.artist,
-                  album: item.album,
-                  image: item.image,
-                });
-              }}
-            />
-          )}
-        />
-      )}
+      {renderContent()}
     </View>
   );
 };
@@ -210,6 +286,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     color: '#666',
+  },
+  modeButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#F0FAF9',
+    marginLeft: 10,
   },
 });
 

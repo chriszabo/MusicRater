@@ -35,8 +35,9 @@ export const getAccessToken = async () => {
 
 export const searchSpotify = async (query) => {
   const token = await getAccessToken();
+  console.log("Searching spotify for: ", query)
   const response = await fetch(
-    `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`,
+    `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=20`,
     {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -44,4 +45,61 @@ export const searchSpotify = async (query) => {
     }
   );
   return await response.json();
+};
+
+export const searchArtists = async (query) => {
+  const token = await getAccessToken();
+  console.log("Searching Artist: ", query)
+  const response = await fetch(
+    `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=1`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  );
+  const data = await response.json();
+  return data.artists?.items[0];
+};
+
+export const getArtistAlbums = async (artistId) => {
+  const token = await getAccessToken();
+  console.log("Getting Artist Albums", artistId)
+  const response = await fetch(
+    `https://api.spotify.com/v1/artists/${artistId}/albums?include_groups=album&limit=50`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  );
+  return await response.json();
+};
+
+export const getAlbum = async (albumId) => {
+  const token = await getAccessToken();
+  console.log("Getting Album", albumId)
+  const response = await fetch(
+    `https://api.spotify.com/v1/albums/${albumId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  );
+  return await response.json();
+};
+
+export const getArtistTopTracks = async (artistId) => {
+  const token = await getAccessToken();
+  const response = await fetch(
+    `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=DE`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  );
+  const data = await response.json();
+  return data.tracks;
 };

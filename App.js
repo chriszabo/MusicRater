@@ -16,7 +16,6 @@ import ProfileScreen from './screens/ProfileScreen';
 import StatisticsScreen from './screens/StatisticsScreen';
 import AlbumTracksScreen from './screens/AlbumTracksScreen';
 import CustomRatingScreen from './screens/CustomRatingScreen';
-import TopTrackScreen from './screens/TopTrackScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,7 +34,6 @@ const SearchStackScreen = () => (
     }}
   >
     <SearchStack.Screen name="SearchMain" component={SearchScreen} />
-    <SearchStack.Screen name="TopTracks" component={TopTrackScreen} />
     <SearchStack.Screen name="AlbumTracks" component={AlbumTracksScreen} />
     <SearchStack.Screen name="Rate" component={RateScreen} />
   </SearchStack.Navigator>
@@ -101,7 +99,20 @@ function App() {
                 headerShown: false,
               })}
             >
-              <Tab.Screen name="Search" component={SearchStackScreen} options={{ title: 'Songs suchen' }} />
+              <Tab.Screen 
+                name="Search" 
+                component={SearchStackScreen} 
+                options={{ 
+                  title: 'Musik suchen',
+                  tabBarIcon: ({ focused, color, size }) => (
+                    <Ionicons 
+                      name={focused ? 'musical-notes' : 'musical-notes-outline'} 
+                      size={size} 
+                      color={color} 
+                    />
+                  )
+                }} 
+              />
               <Tab.Screen name="Ratings" component={RatingsStackScreen} options={{ title: 'Meine Ratings' }} />
               <Tab.Screen 
                   name="Statistics" 

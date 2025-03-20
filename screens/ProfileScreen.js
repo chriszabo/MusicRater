@@ -4,7 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import { getAllRatings, addSong, addRating } from '../database';
+import { getAllRatings, addSong, addRating, resetDatabase } from '../database';
+import { COLORS } from '../config/colors';
 
 const ProfileScreen = () => {
   const [profileName, setProfileName] = useState('');
@@ -71,6 +72,23 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleDelete = () => {
+      Alert.alert(
+        "Datenbank Löschen",
+        "Willst du deine Datenbank wirklich löschen? Alle Songs und Ratings gehen verloren. Mach vorher eventuell einen Export.",
+        [
+          { text: "Abbrechen", style: "cancel" },
+          { 
+            text: "Löschen", 
+            style: "destructive",
+            onPress: async () => {
+              await resetDatabase();
+            }
+          }
+        ]
+      );
+    };
+
   const handleImport = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
@@ -119,6 +137,9 @@ const ProfileScreen = () => {
       </View>
       <View style={styles.button}>
       <Button title="Profil-Ratings importieren" onPress={handleImport} color="#2A9D8F" />
+      </View>
+      <View style={styles.button}>
+      <Button title="Datenbank löschen" onPress={handleDelete} color={COLORS.error} />
       </View>
     </View>
   );
