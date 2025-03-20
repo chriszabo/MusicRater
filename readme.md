@@ -6,7 +6,7 @@
 
 # Setup and Launch Dev
 - install dependencies (e.g. npm install)
-- enter your spotify api credentials in database.js before you build the project
+- enter your spotify api credentials in spotify.js before you build the project
 
 # Launch Dev
 - npx expo start --clear
