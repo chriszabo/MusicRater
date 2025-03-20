@@ -31,6 +31,13 @@ export const initDatabase = async () => {
         UNIQUE(song_id, profile_name)
       );
     `);
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS achievements (
+        name TEXT NOT NULL,
+        profile_name TEXT NOT NULL,
+        unlocked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (name, profile_name)
+    `);
   }
   return db;
 } catch (error)
@@ -39,6 +46,44 @@ export const initDatabase = async () => {
     throw error;
   }
 };
+
+const ACHIEVEMENT_DEFINITIONS = [
+  {
+    name: 'pioneer',
+    title: 'Erster Schritt',
+    description: 'Erstes Rating abgegeben',
+    icon: 'rocket',
+    checkQuery: `SELECT COUNT(*) FROM ratings WHERE profile_name = $profile`,
+    threshold: 1
+  },
+  {
+    name: 'marathon',
+    title: 'Rating-Marathon',
+    description: '50 Songs bewertet',
+    icon: 'walk',
+    checkQuery: `SELECT COUNT(*) FROM ratings WHERE profile_name = $profile`,
+    threshold: 50
+  },
+  {
+    name: 'perfectionist',
+    title: 'Perfektionist',
+    description: '10 perfekte 10/10 Ratings',
+    icon: 'star',
+    checkQuery: `SELECT COUNT(*) FROM ratings 
+                WHERE profile_name = $profile AND score = 10`,
+    threshold: 10
+  },
+  {
+    name: 'explorer',
+    title: 'Musikexplorer',
+    description: '20 verschiedene Künstler bewertet',
+    icon: 'compass',
+    checkQuery: `SELECT COUNT(DISTINCT artist) FROM ratings 
+                JOIN songs ON ratings.song_id = songs.id 
+                WHERE profile_name = $profile`,
+    threshold: 20
+  }
+];
 
 export const addSong = async (song) => {
     const database = await initDatabase();
@@ -282,4 +327,53 @@ export const deleteRating = async (songId) => {
       $artist: artist,
       $profile: profileName 
     });
+  };
+
+  export const checkAchievements = async () => {
+    const database = await initDatabase();
+    const profile = await AsyncStorage.getItem('currentProfile');
+    if (!profile) return;
+  
+    for (const achievement of ACHIEVEMENT_DEFINITIONS) {
+      const result = await database.getFirstAsync(
+        achievement.checkQuery,
+        { $profile: profile }
+      );
+      
+      const count = result ? Object.values(result)[0] : 0;
+      if (count >= achievement.threshold) {
+        try {
+          await database.runAsync(
+            `INSERT OR IGNORE INTO achievements 
+             (name, profile_name) VALUES (?, ?)`,
+            [achievement.name, profile]
+          );
+        } catch(e) { /* Bereits freigeschaltet */ }
+      }
+    }
+  };
+
+  export const getAllAchievements = async () => {
+    const database = await initDatabase();
+    const profile = await AsyncStorage.getItem('currentProfile');
+    if (!profile) return [];
+  
+    try {
+      const unlocked = await database.getAllAsync(
+        `SELECT name, unlocked_at FROM achievements 
+         WHERE profile_name = $profile`,
+        { $profile: profile }
+      );
+  
+      return ACHIEVEMENT_DEFINITIONS.map(def => ({
+        ...def,
+        unlocked: unlocked.some(u => u.name === def.name),
+        unlocked_at: unlocked.find(u => u.name === def.name)?.unlocked_at,
+        progress: getAchievementProgress(def, unlocked)
+      }));
+      
+    } catch (error) {
+      console.error("Error fetching achievements:", error);
+      return [];
+    }
   };

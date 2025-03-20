@@ -134,6 +134,16 @@ function App() {
                     )
                   }} 
                 />
+                <Tab.Screen 
+                  name="Achievements" 
+                  component={AchievementScreen}
+                  options={{
+                    title: 'Erfolge',
+                    tabBarIcon: ({ color, size }) => (
+                      <Ionicons name="trophy" size={size} color={color} />
+                    )
+                  }}
+                />
               <Tab.Screen 
                   name="Profile" 
                   component={ProfileScreen} 
