@@ -19,7 +19,7 @@ const TopTrackScreen = ({ route, navigation }) => {
         setLoading(true);
         setError('');
         
-        // 1. Künstler-ID suchen
+        // 1. Interpreten-ID suchen
         const artistResult = await searchArtists(artist);
         if (!artistResult) throw new Error('Interpret nicht gefunden');
         setArtistData(artistResult);

@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ACHIEVEMENT_DEFINITIONS } from './achievements';
 
 let db = null;
 
@@ -37,6 +38,7 @@ export const initDatabase = async () => {
         profile_name TEXT NOT NULL,
         unlocked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (name, profile_name)
+    );
     `);
   }
   return db;
@@ -46,44 +48,6 @@ export const initDatabase = async () => {
     throw error;
   }
 };
-
-const ACHIEVEMENT_DEFINITIONS = [
-  {
-    name: 'pioneer',
-    title: 'Erster Schritt',
-    description: 'Erstes Rating abgegeben',
-    icon: 'rocket',
-    checkQuery: `SELECT COUNT(*) FROM ratings WHERE profile_name = $profile`,
-    threshold: 1
-  },
-  {
-    name: 'marathon',
-    title: 'Rating-Marathon',
-    description: '50 Songs bewertet',
-    icon: 'walk',
-    checkQuery: `SELECT COUNT(*) FROM ratings WHERE profile_name = $profile`,
-    threshold: 50
-  },
-  {
-    name: 'perfectionist',
-    title: 'Perfektionist',
-    description: '10 perfekte 10/10 Ratings',
-    icon: 'star',
-    checkQuery: `SELECT COUNT(*) FROM ratings 
-                WHERE profile_name = $profile AND score = 10`,
-    threshold: 10
-  },
-  {
-    name: 'explorer',
-    title: 'Musikexplorer',
-    description: '20 verschiedene Künstler bewertet',
-    icon: 'compass',
-    checkQuery: `SELECT COUNT(DISTINCT artist) FROM ratings 
-                JOIN songs ON ratings.song_id = songs.id 
-                WHERE profile_name = $profile`,
-    threshold: 20
-  }
-];
 
 export const addSong = async (song) => {
     const database = await initDatabase();
@@ -116,6 +80,7 @@ export const addRating = async (songId, score) => {
     );
     
     await database.execAsync('COMMIT');
+    await checkAchievements();
   } catch (error) {
     await database.execAsync('ROLLBACK');
     console.error("Error in addRating:", error);
@@ -365,13 +330,28 @@ export const deleteRating = async (songId) => {
         { $profile: profile }
       );
   
-      return ACHIEVEMENT_DEFINITIONS.map(def => ({
-        ...def,
-        unlocked: unlocked.some(u => u.name === def.name),
-        unlocked_at: unlocked.find(u => u.name === def.name)?.unlocked_at,
-        progress: getAchievementProgress(def, unlocked)
-      }));
-      
+      const achievements = [];
+      for (const def of ACHIEVEMENT_DEFINITIONS) {
+        // Execute the checkQuery to get current count
+        const result = await database.getFirstAsync(
+          def.checkQuery,
+          { $profile: profile }
+        );
+        const count = result ? Object.values(result)[0] : 0;
+        const isUnlocked = unlocked.some(u => u.name === def.name);
+        const progress = isUnlocked ? 100 : Math.min((count / def.threshold) * 100, 100);
+  
+        achievements.push({
+          ...def,
+          unlocked: isUnlocked,
+          unlocked_at: unlocked.find(u => u.name === def.name)?.unlocked_at,
+          progress: progress,
+          currentCount: count,
+          threshold: def.threshold
+        });
+      }
+  
+      return achievements;
     } catch (error) {
       console.error("Error fetching achievements:", error);
       return [];

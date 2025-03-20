@@ -16,6 +16,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import StatisticsScreen from './screens/StatisticsScreen';
 import AlbumTracksScreen from './screens/AlbumTracksScreen';
 import CustomRatingScreen from './screens/CustomRatingScreen';
+import AchievementScreen from './screens/AchievementScreen';
 
 SplashScreen.preventAutoHideAsync();
 

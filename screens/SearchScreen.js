@@ -64,7 +64,7 @@ const SearchScreen = ({ navigation }) => {
       setError('');
 
       if (mode === 'artist') {
-        // Artist-Modus: Suche nach Künstlern und Alben
+        // Artist-Modus: Suche nach Interpretenn und Alben
         const artist = await searchArtists(query);
         if (!artist) {
           setError('Keinen Interpreten gefunden');
@@ -76,7 +76,7 @@ const SearchScreen = ({ navigation }) => {
         setResults([]);
       } 
       else if (mode === 'topTracks') {
-        // TopTracks-Modus: Suche nach Künstler und Top-Tracks
+        // TopTracks-Modus: Suche nach Interpreten und Top-Tracks
         const artist = await searchArtists(query);
         if (!artist) {
           setError('Keinen Interpreten gefunden');
