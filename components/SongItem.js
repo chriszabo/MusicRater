@@ -10,20 +10,28 @@ const COLORS = {
     error: '#E76F51',    // Warmes Korallenrot
   };
   
-const SongItem = ({ song, onPress }) => {
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.container}>
-      <Image source={{ uri: song.image }} style={styles.image} />
-      <View style={styles.details}>
-        <Text style={styles.title}>{song.title}</Text>
-        <Text style={styles.artist}>{song.artist}</Text>
-        <Text style={styles.album}>{song.album}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
+  const SongItem = ({ song, onPress, score, isRated }) => {
+    return (
+      <TouchableOpacity 
+        onPress={onPress} 
+        style={[styles.container, { backgroundColor: isRated ? '#F0FAF9' : 'white' }]}
+      >
+        <Image source={{ uri: song.image }} style={styles.image} />
+        <View style={styles.details}>
+          <Text style={styles.title}>{song.title}</Text>
+          <Text style={styles.artist}>{song.artist}</Text>
+          <Text style={styles.album}>{song.album}</Text>
+        </View>
+        {score !== undefined && (
+          <View style={styles.scoreContainer}>
+            <Text style={styles.scoreText}>{score}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
-const styles = StyleSheet.create({
+  const styles = StyleSheet.create({
     container: {
       flexDirection: 'row',
       padding: 15,
@@ -63,10 +71,24 @@ const styles = StyleSheet.create({
       flexWrap: 'wrap'
     },
     details: {
-        flex: 1,
-        marginRight: 10,
-        maxWidth: '85%',
-      },
+      flex: 1,
+      marginRight: 10,
+      maxWidth: '85%',
+    },
+    scoreContainer: {
+      backgroundColor: COLORS.primary,
+      borderRadius: 12,
+      width: 24,
+      height: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 10,
+    },
+    scoreText: {
+      color: 'white',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
   });
 
 export default SongItem;

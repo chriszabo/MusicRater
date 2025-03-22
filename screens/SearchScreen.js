@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, FlatList, TextInput, Button, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image } from 'react-native';
 import { searchSpotify, searchArtists, getAlbum, getArtistAlbums, getArtistTopTracks } from '../spotify';
-import { addSong, getExistingRating, incrementProfileData } from '../database';
+import { addSong, getExistingRating, incrementProfileData, getAllRatings } from '../database';
 import SongItem from '../components/SongItem';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -38,11 +38,31 @@ const SearchScreen = ({ navigation }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState('track'); // 'track', 'artist' oder 'topTracks'
+  const [existingRatings, setExistingRatings] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', loadExistingRatings);
+    loadExistingRatings();
+    return unsubscribe;
+  }, [navigation]);
 
   const modeTitles = {
     track: 'Zur Interpreten-Suche',
     artist: 'Zur Top-Tracks-Suche',
     topTracks: 'Zur Song-Suche'
+  };
+
+  const loadExistingRatings = async () => {
+    console.log("Load existing ratings, hihi")
+    const ratings = await getAllRatings({}, {});
+    console.log("Ratings", ratings)
+    setExistingRatings(ratings);
+  };
+  
+  // Hilfsfunktion, um den Score zu finden
+  const getScoreForSong = (songId) => {
+    const rating = existingRatings.find(r => r.song_id === songId);
+    return rating?.score;
   };
 
   const handleModeToggle = () => {
@@ -177,19 +197,6 @@ const SearchScreen = ({ navigation }) => {
     />
   );
 
-  const renderTopTracks = () => (
-    <FlatList
-      data={artistTracks}
-      keyExtractor={item => item.id}
-      renderItem={({ item }) => (
-        <SongItem
-          song={validateTrack(item)}
-          onPress={() => handleTrackPress(validateTrack(item))}
-        />
-      )}
-    />
-  );
-
   const renderTracks = () => (
     <FlatList
       data={results}
@@ -198,6 +205,23 @@ const SearchScreen = ({ navigation }) => {
         <SongItem
           song={item}
           onPress={() => handleTrackPress(item)}
+          score={getScoreForSong(item.id)}
+          isRated={existingRatings.some(r => r.song_id === item.id)}
+        />
+      )}
+    />
+  );
+  
+  const renderTopTracks = () => (
+    <FlatList
+      data={artistTracks}
+      keyExtractor={item => item.id}
+      renderItem={({ item }) => (
+        <SongItem
+          song={validateTrack(item)}
+          onPress={() => handleTrackPress(validateTrack(item))}
+          score={getScoreForSong(item.id)}
+          isRated={existingRatings.some(r => r.song_id === item.id)}
         />
       )}
     />

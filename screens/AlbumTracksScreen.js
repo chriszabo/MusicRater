@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import { getAlbum } from '../spotify';
 import SongItem from '../components/SongItem';
-import { addSong } from '../database';
+import { addSong, getAllRatings, getExistingRating } from '../database';
 
 const AlbumTracksScreen = ({ route, navigation }) => {
   const [tracks, setTracks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [albumInfo, setAlbumInfo] = useState(null);
+  const [existingRatings, setExistingRatings] = useState([]);
 
   useEffect(() => {
     const loadAlbum = async () => {
@@ -38,6 +39,33 @@ const AlbumTracksScreen = ({ route, navigation }) => {
     loadAlbum();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', async () => {
+      const ratings = await getAllRatings({}, {});
+      setExistingRatings(ratings);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  const getScoreForSong = (songId) => {
+    const rating = existingRatings.find(r => r.song_id === songId);
+    return rating?.score;
+  };
+
+  const handleTrackPress = async (item) => {
+    await addSong(item);
+    const existingRating = await getExistingRating(item.id);
+    navigation.navigate('Rate', { 
+      songId: item.id,
+      initialScore: existingRating?.score || null,
+      initialNotes: existingRating?.notes || null,
+      title: item.title,
+      artist: item.artist,
+      album: item.album,
+      image: item.image
+    });
+  };
+
   return (
     <View style={styles.container}>
       {isLoading ? (
@@ -49,16 +77,9 @@ const AlbumTracksScreen = ({ route, navigation }) => {
           renderItem={({ item }) => (
             <SongItem
               song={item}
-              onPress={async () => {
-                await addSong(item);
-                navigation.navigate('Rate', { 
-                  songId: item.id,
-                  title: item.title,
-                  artist: item.artist,
-                  album: item.album,
-                  image: item.image
-                });
-              }}
+              onPress={() => handleTrackPress(item)}
+              score={getScoreForSong(item.id)}
+              isRated={existingRatings.some(r => r.song_id === item.id)}
             />
           )}
         />
