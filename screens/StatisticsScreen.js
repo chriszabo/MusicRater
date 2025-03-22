@@ -110,7 +110,7 @@ const StatisticsScreen = () => {
         />
 
         <TopList 
-          title="Top 5 Alben"
+          title="Top 10 Alben"
           data={overallStats?.topAlbums}
           renderItem={(item) => `${item.album} (${item.avgRating.toFixed(1)})`}
         />

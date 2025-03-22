@@ -264,7 +264,7 @@ export const deleteRating = async (songId) => {
       LIMIT 5
     `, { $profile: profileName });
   
-    // Top 5 Alben
+    // Top 10 Alben
     const topAlbums = await database.getAllAsync(`
       SELECT 
         album,
@@ -275,7 +275,7 @@ export const deleteRating = async (songId) => {
       WHERE profile_name = $profile
       GROUP BY album
       ORDER BY avgRating DESC
-      LIMIT 5
+      LIMIT 10
     `, { $profile: profileName });
   
     return {
