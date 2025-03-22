@@ -439,3 +439,45 @@ export const deleteRating = async (songId) => {
       throw error;
     }
   };
+
+  export const getArtistStats2 = async (sortBy = 'avgScore', sortOrder = 'desc') => {
+    const database = await initDatabase();
+    const profile = await AsyncStorage.getItem('currentProfile');
+    if (!profile) throw new Error('No profile selected');
+    // Sicherstellen, dass NULL-Werte behandelt werden
+    const validSortColumns = ['artist', 'avgScore', 'songCount'];
+    const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'avgScore';
+  
+    return await database.getAllAsync(`
+      SELECT 
+        artist,
+        COALESCE(AVG(score), 0) as avgScore,
+        COUNT(*) as songCount
+      FROM ratings
+      JOIN songs ON ratings.song_id = songs.id
+      WHERE profile_name = $profile
+      GROUP BY artist
+      ORDER BY ${safeSortBy} ${sortOrder.toUpperCase()}
+    `, { $profile: profile });
+  };
+  
+  export const getAlbumStats = async (sortBy = 'avgScore', sortOrder = 'desc') => {
+    const database = await initDatabase();
+    const profile = await AsyncStorage.getItem('currentProfile');
+    if (!profile) throw new Error('No profile selected');
+    const validSortColumns = ['album', 'artist', 'avgScore', 'songCount'];
+    const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'avgScore';
+  
+    return await database.getAllAsync(`
+      SELECT 
+        album,
+        artist,
+        COALESCE(AVG(score), 0) as avgScore,
+        COUNT(*) as songCount
+      FROM ratings
+      JOIN songs ON ratings.song_id = songs.id
+      WHERE profile_name = $profile
+      GROUP BY album, artist
+      ORDER BY ${safeSortBy} ${sortOrder.toUpperCase()}
+    `, { $profile: profile });
+  };
