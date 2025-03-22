@@ -74,8 +74,8 @@ const RatingsScreen = ({ navigation }) => {
           result = await getAlbumStats(sortBy, sortOrder);
           break;
       }
+      console.log("Hey")
       setData(result);
-      console.log("Hey",result)
     } catch (err) {
       console.error(err);
     } finally {
@@ -84,25 +84,18 @@ const RatingsScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    if (prevMode !== mode) {
-      setData([]); // Leere Daten bei Moduswechsel
-      setPrevMode(mode);
-    }
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (prevMode !== mode) {
+        setData([]);
+        setPrevMode(mode);
+      }
+      loadData();
+    });
+  
     loadData();
-  }, [mode, sortBy, sortOrder]);
+    return unsubscribe;
+  }, [mode, sortBy, sortOrder, navigation]);
 
-  // const handleModeToggle = () => {
-  //   const newMode = modeConfig[mode].next;
-  //   const defaultSortBy = {
-  //     songs: 'created_at',
-  //     artists: 'avgScore',
-  //     albums: 'avgScore'
-  //   };
-    
-  //   setMode(newMode);
-  // setSortBy(defaultSortBy[newMode]);
-  // setIsFiltersVisible(false);
-  // };
 
   const handleModeToggle = () => {
     const newMode = modeConfig[mode].next;
@@ -162,7 +155,7 @@ const RatingsScreen = ({ navigation }) => {
             <Text style={styles.title}>{item.artist}</Text>
             <View style={styles.statsRow}>
               <Text style={styles.detail}>Ø {(item.avgScore || 0).toFixed(1)}</Text>
-              <Text style={styles.detail}>{item.songCount} Songs</Text>
+              <Text style={styles.detail}>{item.songCount} Songs bewertet</Text>
             </View>
           </View>
         );
@@ -175,7 +168,7 @@ const RatingsScreen = ({ navigation }) => {
               <Text style={styles.detail}>{item.artist}</Text>
               <Text style={styles.detail}>Ø {(item.avgScore || 0).toFixed(1)}</Text>
             </View>
-            <Text style={styles.detail}>{item.songCount} Songs</Text>
+            <Text style={styles.detail}>{item.songCount} Songs bewertet</Text>
           </View>
         );
     }
