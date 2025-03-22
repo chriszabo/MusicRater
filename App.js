@@ -17,6 +17,7 @@ import StatisticsScreen from './screens/StatisticsScreen';
 import AlbumTracksScreen from './screens/AlbumTracksScreen';
 import CustomRatingScreen from './screens/CustomRatingScreen';
 import AchievementScreen from './screens/AchievementScreen';
+import GameScreen from './screens/GameScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -155,6 +156,16 @@ function App() {
                     )
                   }} 
                 />
+                <Tab.Screen 
+  name="Game" 
+  component={GameScreen} 
+  options={{ 
+    title: 'Spiel',
+    tabBarIcon: ({ color, size }) => (
+      <Ionicons name="game-controller" size={size} color={color} />
+    )
+  }}
+/>
             </Tab.Navigator>
           </SafeAreaView>
         </NavigationContainer>
