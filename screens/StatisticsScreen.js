@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, FlatList, Text, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
-import { getArtistStats, getOverallStats } from '../database';
+import { getArtistStats, getOverallStats, incrementProfileData } from '../database';
 import { COLORS } from '../config/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -49,6 +49,7 @@ const StatisticsScreen = () => {
     const handleSearch = async () => {
       if (!artist.trim()) return;
       setLoading(true);
+      await incrementProfileData("artist_statistics_opened")
       loadData();
     };
 

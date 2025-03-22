@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import { getAllRatings, addSong, addRating, resetDatabase } from '../database';
+import { getAllRatings, addSong, addRating, resetDatabase, getAllAchievements } from '../database';
 import { COLORS } from '../config/colors';
 
 const ProfileScreen = () => {
@@ -30,14 +30,16 @@ const ProfileScreen = () => {
   const handleExport = async () => {
     const currentProfile = await AsyncStorage.getItem('currentProfile');
     if (!currentProfile) {
-      Alert.alert("No Profile", "Create or select a profile to export.");
+      Alert.alert("Kein Profil", "Wähle ein Profil, bevor du den Export beginnst");
       return;
     }
 
     try {
       const ratings = await getAllRatings({}, {});
+      const unlockedAchievements = await getAllAchievements();
+      
       if (!ratings.length) {
-        Alert.alert("No Data", "No ratings to export.");
+        Alert.alert("Keine Daten", "Du hast keine Ratings auf diesem Profil");
         return;
       }
 
@@ -61,14 +63,21 @@ const ProfileScreen = () => {
           song_id: r.song_id,
           score: r.score,
           created_at: r.created_at,
+          notes: r.notes,
         })),
+        achievements: unlockedAchievements
+          .filter(a => a.unlocked)
+          .map(a => ({
+            name: a.name,
+            unlocked_at: a.unlocked_at
+          }))
       };
 
       const fileUri = FileSystem.documentDirectory + `${currentProfile}_export.json`;
       await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(exportData));
       await Sharing.shareAsync(fileUri);
     } catch (error) {
-      Alert.alert("Export Failed", error.message);
+      Alert.alert("Export fehlgeschlagen", error.message);
     }
   };
 
@@ -96,7 +105,7 @@ const ProfileScreen = () => {
       console.log("success")
       const asset = result.assets[0]
       const json = await FileSystem.readAsStringAsync(asset.uri);
-      const { profileName, songs, ratings } = JSON.parse(json);
+      const { profileName, songs, ratings, achievements } = JSON.parse(json);
 
       await AsyncStorage.setItem('currentProfile', profileName);
       setCurrentProfile(profileName);
@@ -110,12 +119,23 @@ const ProfileScreen = () => {
       // Import ratings
       for (const rating of ratings) {
         console.log("rating", rating)
-        await addRating(rating.song_id, rating.score);
+        await addRating(rating.song_id, rating.score, rating.notes || "");
       }
 
-      Alert.alert("Success", `Profile "${profileName}" imported!`);
+      if (achievements) {
+        const database = await initDatabase();
+        for (const ach of achievements) {
+          await database.runAsync(
+            `INSERT OR REPLACE INTO achievements (name, profile_name, unlocked_at) 
+             VALUES (?, ?, ?)`,
+            [ach.name, profileName, ach.unlocked_at]
+          );
+        }
+      }
+
+      Alert.alert("Erfolg", `Profil "${profileName}" importiert!`);
     } catch (error) {
-      Alert.alert("Import Failed", error.message);
+      Alert.alert("Import fehlgeschlagen", error.message);
     }
   };
 

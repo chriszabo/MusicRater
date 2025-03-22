@@ -20,6 +20,7 @@ const CustomRatingScreen = () => {
   const [title, setTitle] = useState('');
   const [album, setAlbum] = useState('');
   const [artist, setArtist] = useState('');
+  const [notes, setNotes] = useState('');
   const [score, setScore] = useState(5);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -46,7 +47,7 @@ const CustomRatingScreen = () => {
       });
 
       // Rating hinzufügen
-      await addRating(customId, Math.round(score));
+      await addRating(customId, Math.round(score), notes);
 
       // Formular zurücksetzen
       setTitle('');
@@ -84,6 +85,13 @@ const CustomRatingScreen = () => {
         placeholder="Album"
         value={album}
         onChangeText={setAlbum}
+        style={styles.input}
+      />
+
+      <TextInput
+        placeholder="Notizen"
+        value={notes}
+        onChangeText={setNotes}
         style={styles.input}
       />
 

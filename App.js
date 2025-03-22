@@ -104,7 +104,7 @@ function App() {
                 name="Search" 
                 component={SearchStackScreen} 
                 options={{ 
-                  title: 'Musik suchen',
+                  title: 'Musik',
                   tabBarIcon: ({ focused, color, size }) => (
                     <Ionicons 
                       name={focused ? 'musical-notes' : 'musical-notes-outline'} 
@@ -129,7 +129,7 @@ function App() {
                   name="CustomRating" 
                   component={CustomRatingScreen} 
                   options={{ 
-                    title: 'Custom Rating',
+                    title: 'Custom',
                     tabBarIcon: ({ focused, color, size }) => (
                       <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={size} color={color} />
                     )

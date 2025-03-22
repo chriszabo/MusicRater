@@ -240,18 +240,16 @@ export const ACHIEVEMENT_DEFINITIONS = [
       description: 'Alle Bronze-Achievements freigeschaltet',
       icon: 'medal',
       checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_bronze'`,
-      threshold: 6, // Anzahl aller Bronze-Achievements im System
+      threshold: 9, // Anzahl aller Bronze-Achievements im System
       color: '#8A2BE2' // Bronze
     },
-    
-    // Silber-Sammler Achievement
     {
       name: 'silver_collector',
       title: 'Silber-Sammler',
       description: 'Alle Silber-Achievements freigeschaltet',
       icon: 'medal',
       checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_silver'`,
-      threshold: 6, // Anzahl aller Silber-Achievements im System
+      threshold: 9, // Anzahl aller Silber-Achievements im System
       color: '#8A2BE2'
     },
     {
@@ -260,7 +258,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
       description: 'Alle Gold-Achievements freigeschaltet',
       icon: 'medal',
       checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_gold'`,
-      threshold: 6, // Anzahl der Gold-Achievements
+      threshold: 9, // Anzahl der Gold-Achievements
       color: '#8A2BE2'
     },
     {
@@ -271,5 +269,113 @@ export const ACHIEVEMENT_DEFINITIONS = [
       checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_diamond'`,
       threshold: 3, // Anzahl der Gold-Achievements
       color: '#8A2BE2'
-    }
+    },
+    // Spotify-Link Achievements
+  {
+    name: 'spotify_link',
+    title: 'Spotify-Profi',
+    description: '25 Spotify-Links geöffnet',
+    icon: 'link',
+    checkQuery: `SELECT spotify_links_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 25,
+    color: '#555'
+  },
+
+  // Artist Stats Achievements
+  {
+    name: 'artist_stats_bronze',
+    title: 'Statistik-Neugier',
+    description: '5x einen Interpreten im Statistikscreen gesucht',
+    icon: 'stats-chart',
+    checkQuery: `SELECT artist_statistics_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 5,
+    color: '#CD7F32'
+  },
+  {
+    name: 'artist_stats_silver',
+    title: 'Analytiker',
+    description: '20x einen Interpreten im Statistikscreen gesucht',
+    icon: 'stats-chart',
+    checkQuery: `SELECT artist_statistics_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 20,
+    color: '#C0C0C0'
+  },
+  {
+    name: 'artist_stats_gold',
+    title: 'Detektiv',
+    description: '50x einen Interpreten im Statistikscreen gesucht',
+    icon: 'stats-chart',
+    checkQuery: `SELECT artist_statistics_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 50,
+    color: '#FFD700'
+  },
+
+  // Top Tracks Achievements
+  {
+    name: 'top_tracks_bronze',
+    title: 'Hit-Listener',
+    description: '5x Top-Tracks Modus genutzt',
+    icon: 'musical-notes',
+    checkQuery: `SELECT top_tracks_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 5,
+    color: '#CD7F32'
+  },
+  {
+    name: 'top_tracks_silver',
+    title: 'Charts-Junkie',
+    description: '15x Top-Tracks Modus genutzt',
+    icon: 'musical-notes',
+    checkQuery: `SELECT top_tracks_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 15,
+    color: '#C0C0C0'
+  },
+  {
+    name: 'top_tracks_gold',
+    title: 'Hit-Archivar',
+    description: '30x Top-Tracks Modus genutzt',
+    icon: 'musical-notes',
+    checkQuery: `SELECT top_tracks_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 30,
+    color: '#FFD700'
+  },
+
+  // Such-Achievements
+  {
+    name: 'search',
+    title: 'Suchmaschine',
+    description: '50x nach bestimmten Songs gesucht',
+    icon: 'search',
+    checkQuery: `SELECT songs_searched FROM profiledata WHERE profile_name = $profile`,
+    threshold: 50,
+    color: '#555'
+  },
+
+  // Künstler-Modus Achievements
+  {
+    name: 'artist_mode_bronze',
+    title: 'Modus-Entdecker',
+    description: '10x Interpretensuche genutzt',
+    icon: 'person',
+    checkQuery: `SELECT artist_mode_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 5,
+    color: '#CD7F32'
+  },
+  {
+    name: 'artist_mode_silver',
+    title: 'Künstler-Fan',
+    description: '50x Interpretensuche genutzt',
+    icon: 'person',
+    checkQuery: `SELECT artist_mode_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 15,
+    color: '#C0C0C0'
+  },
+  {
+    name: 'artist_mode_gold',
+    title: 'Künstler-Purist',
+    description: '100x Interpretensuche genutzt',
+    icon: 'person',
+    checkQuery: `SELECT artist_mode_opened FROM profiledata WHERE profile_name = $profile`,
+    threshold: 30,
+    color: '#FFD700'
+  },
   ];

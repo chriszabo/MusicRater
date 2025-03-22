@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'; // useRef hinzufügen
-import { View, Text, StyleSheet, Image, Alert, Button, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, Alert, Button, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { addRating, deleteRating } from '../database';
+import { addRating, deleteRating, incrementProfileData } from '../database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 
@@ -20,8 +20,9 @@ const LOCAL_IMAGES = {
 };
 
 const RateScreen = ({ route, navigation }) => {
-  const { songId, initialScore, title, artist, album, image, created_at} = route.params;
+  const { songId, initialScore, title, artist, album, image, created_at, initialNotes} = route.params;
   const [score, setScore] = useState(initialScore ? parseFloat(initialScore) : 5.0);
+  const [notes, setNotes] = useState(initialNotes)
   const sliderValue = useRef(score); // useRef für den Slider-Wert
   const [showSavedMessage, setShowSavedMessage] = useState(false);
 
@@ -33,6 +34,7 @@ const RateScreen = ({ route, navigation }) => {
       const supported = true;
       if (supported) {
         await Linking.openURL(link);
+        await incrementProfileData("spotify_links_opened")
       } else {
         Alert.alert("Fehler", "Die URL kann nicht geöffnet werden.");
       }
@@ -60,6 +62,10 @@ const RateScreen = ({ route, navigation }) => {
     );
   };
 
+  const handleText = async() => {
+    await handleSaveRating(score);
+  };
+
   const handleSaveRating = async (value) => {
     try {
       const profileName = await AsyncStorage.getItem('currentProfile');
@@ -68,7 +74,7 @@ const RateScreen = ({ route, navigation }) => {
         return;
       }
       
-      await addRating(songId, Math.round(value));
+      await addRating(songId, Math.round(value), notes);
       setShowSavedMessage(true);
       setTimeout(() => setShowSavedMessage(false), 2000);
     } catch (error) {
@@ -87,66 +93,78 @@ const RateScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
+    <ScrollView contentContainerStyle={styles.scrollContent}>
       {/* Song Information */}
-      <View style={styles.imageContainer}>
-      <Image 
-        source={getImageSource(image)} 
-        style={styles.image} 
-        resizeMode="cover"
-      />
-      </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.artist}>{artist}</Text>
-      <Text style={styles.album}>{album}</Text>
-      {!songId.startsWith("custom") && (
-      <TouchableOpacity onPress={handleOpenExternalUrl}>
-        <Text style={styles.externalUrlText}>Öffne auf Spotify</Text>
-      </TouchableOpacity>
-      )}
-
-      {/* Rating Slider */}
-      <Text style={styles.sliderLabel}>{Math.round(score)}/10</Text>
-      <Slider
-        style={styles.slider}
-        minimumValue={0}
-        maximumValue={10}
-        step={0.1}
-        value={sliderValue.current} // Verwende den useRef-Wert
-        onValueChange={(value) => {
-          //sliderValue.current = value; // Aktualisiere den useRef-Wert
-          setScore(value); // Aktualisiere den State für die Anzeige
-        }}
-        onSlidingComplete={handleSaveRating}
-        minimumTrackTintColor="#1EB1FC"
-        maximumTrackTintColor="#D3D3D3"
-        thumbTintColor="#1EB1FC"
-      />
-      {created_at && (
-        <Text style={styles.date}>Zuletzt bearbeitet am {new Date(created_at).toLocaleDateString()}</Text>
-      )}
-
-      {showSavedMessage && (
-        <View style={styles.savedMessage}>
-          <Text style={styles.savedMessageText}>Rating gespeichert!</Text>
+      <View style={styles.content}>
+        <View style={styles.imageContainer}>
+          <Image 
+            source={getImageSource(image)} 
+            style={styles.image} 
+            resizeMode="cover"
+          />
         </View>
-      )}
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.artist}>{artist}</Text>
+        <Text style={styles.album}>{album}</Text>
+        
+        {!songId.startsWith("custom") && (
+          <TouchableOpacity onPress={handleOpenExternalUrl}>
+            <Text style={styles.externalUrlText}>Öffne auf Spotify</Text>
+          </TouchableOpacity>
+        )}
 
-    </View>
-      {/* Delete Button */}
-      <Button style={styles.buttonContainer}
-        title="Löschen"
-        onPress={handleDelete}
-        color={COLORS.error}
+        {/* Rating Slider */}
+        <Text style={styles.sliderLabel}>{Math.round(score)}/10</Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={10}
+          step={0.1}
+          value={sliderValue.current}
+          onValueChange={(value) => setScore(value)}
+          onSlidingComplete={handleSaveRating}
+          minimumTrackTintColor="#1EB1FC"
+          maximumTrackTintColor="#D3D3D3"
+          thumbTintColor="#1EB1FC"
+        />
+
+        {created_at && (
+          <Text style={styles.date}>Zuletzt bewertet am {new Date(created_at).toLocaleDateString()}</Text>
+        )}
+      </View>
+
+      <TextInput
+        placeholder="Notizen..."
+        value={notes}
+        onChangeText={setNotes}
+        onSubmitEditing={handleText}
+        multiline
+        style={styles.notesInput}
+        blurOnSubmit={false}
       />
-    </View>
+    </ScrollView>
+
+    {/* Delete Button */}
+    <Button
+      title="Löschen"
+      onPress={handleDelete}
+      color={COLORS.error}
+      style={styles.deleteButton}
+    />
+
+    {showSavedMessage && (
+      <View style={styles.savedMessage}>
+        <Text style={styles.savedMessageText}>Rating gespeichert!</Text>
+      </View>
+    )}
+  </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'space-between', backgroundColor: COLORS.background },
+  container: { flex: 1, padding: 20, backgroundColor: COLORS.background },
   content: {
-    flex: 1,
+    marginBottom: 20,
   },
   artist: {
     fontSize: 18,
@@ -171,11 +189,6 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginBottom: 20,
-  },
-  container: { 
-    flex: 1, 
-    padding: 25,
-    backgroundColor: COLORS.background,
   },
   title: {
     fontSize: 26,
@@ -221,6 +234,33 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     textAlign: 'center',
     marginTop: 10,
+  },
+  notesInput: {
+    minHeight: 100,
+    maxHeight: 200,
+    fontSize: 16,
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginBottom: 15,
+    textAlignVertical: 'top',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 80, // Platz für den Löschen-Button
+  },
+  deleteButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
   },
 });
 

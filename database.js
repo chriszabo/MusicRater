@@ -26,6 +26,7 @@ export const initDatabase = async () => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         song_id TEXT NOT NULL,
         profile_name TEXT NOT NULL,
+        notes TEXT,
         score INTEGER CHECK(score BETWEEN 0 AND 10),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(song_id) REFERENCES songs(id),
@@ -38,6 +39,16 @@ export const initDatabase = async () => {
         profile_name TEXT NOT NULL,
         unlocked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (name, profile_name)
+    );
+    `);
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS profiledata (
+        profile_name PRIMARY KEY,
+        spotify_links_opened INTEGER,
+        artist_statistics_opened INTEGER,
+        top_tracks_opened INTEGER,
+        songs_searched INTEGER,
+        artist_mode_opened INTEGER
     );
     `);
   }
@@ -60,10 +71,11 @@ export const addSong = async (song) => {
     );
   };
 
-export const addRating = async (songId, score) => {
+export const addRating = async (songId, score, notes) => {
   const database = await initDatabase();
   console.log("Add Rating SongID: ", songId)
   console.log("Add Rating Score: ", score)
+  console.log("Add Rating Notes: ", notes)
   try {
     await database.execAsync('BEGIN TRANSACTION');
     
@@ -72,11 +84,11 @@ export const addRating = async (songId, score) => {
     if (!profileName) throw new Error('No profile selected');
 
     await database.runAsync(
-      `INSERT INTO ratings (song_id, score, profile_name) 
-      VALUES (?, ?, ?)
+      `INSERT INTO ratings (song_id, score, profile_name, notes) 
+      VALUES (?, ?, ?, ?)
       ON CONFLICT(song_id, profile_name)
-      DO UPDATE SET score = excluded.score, created_at = CURRENT_TIMESTAMP`,
-      [songId, Math.round(score), profileName]
+      DO UPDATE SET score = excluded.score, notes = excluded.notes, created_at = CURRENT_TIMESTAMP`,
+      [songId, Math.round(score), profileName, notes]
     );
     
     await database.execAsync('COMMIT');
@@ -101,6 +113,7 @@ export const addRating = async (songId, score) => {
              ratings.song_id, 
              ratings.score, 
              ratings.created_at,
+             ratings.notes,
              songs.title,
              songs.artist,
              songs.album,
@@ -157,12 +170,14 @@ export const addRating = async (songId, score) => {
 
 export const getExistingRating = async (songId) => {
     const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
     try {
       const results = await database.getAllAsync(
-        'SELECT score FROM ratings WHERE song_id = ?',
-        [songId]
+        'SELECT score, notes FROM ratings WHERE song_id = ? AND profile_name = ?',
+        [songId, profileName]
       );
-      return results[0]?.score || null;
+      console.log("Existing", results)
+      return results[0];
     } catch (error) {
       console.error("Error fetching rating:", error);
       return null;
@@ -355,5 +370,72 @@ export const deleteRating = async (songId) => {
     } catch (error) {
       console.error("Error fetching achievements:", error);
       return [];
+    }
+  };
+
+  export const incrementProfileData = async (columnName) => {
+    const database = await initDatabase();
+    const profile = await AsyncStorage.getItem('currentProfile');
+    if (!profile) throw new Error('No profile selected');
+  
+    // Whitelist der erlaubten Spaltennamen
+    const allowedColumns = [
+      'spotify_links_opened',
+      'artist_statistics_opened',
+      'top_tracks_opened',
+      'songs_searched',
+      'artist_mode_opened'
+    ];
+  
+    if (!allowedColumns.includes(columnName)) {
+      throw new Error('Invalid column name');
+    }
+  
+    try {
+      await database.execAsync('BEGIN TRANSACTION');
+  
+      // Versuche zu updaten
+      const result = await database.runAsync(
+        `UPDATE profiledata 
+         SET ${columnName} = ${columnName} + 1 
+         WHERE profile_name = ?`,
+        [profile]
+      );
+  
+      // Wenn kein Eintrag existiert, füge neuen ein
+      if (result.changes === 0) {
+        const initialValues = {
+          spotify_links_opened: 0,
+          artist_statistics_opened: 0,
+          top_tracks_opened: 0,
+          songs_searched: 0,
+          artist_mode_opened: 0
+        };
+        initialValues[columnName] = 1;
+  
+        await database.runAsync(
+          `INSERT INTO profiledata (
+            profile_name,
+            spotify_links_opened,
+            artist_statistics_opened,
+            top_tracks_opened,
+            songs_searched,
+            artist_mode_opened
+          ) VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            profile,
+            initialValues.spotify_links_opened,
+            initialValues.artist_statistics_opened,
+            initialValues.top_tracks_opened,
+            initialValues.songs_searched,
+            initialValues.artist_mode_opened
+          ]
+        );
+      }
+  
+      await database.execAsync('COMMIT');
+    } catch (error) {
+      await database.execAsync('ROLLBACK');
+      throw error;
     }
   };

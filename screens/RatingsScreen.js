@@ -183,6 +183,7 @@ const RatingsScreen = ({ navigation }) => {
                 album: item.album,
                 image: item.image,
                 created_at: item.created_at,
+                initialNotes: item.notes
               })}
             >
                 <View style={styles.textContainer}>

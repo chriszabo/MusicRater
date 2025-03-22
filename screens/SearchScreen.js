@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, FlatList, TextInput, Button, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image } from 'react-native';
 import { searchSpotify, searchArtists, getAlbum, getArtistAlbums, getArtistTopTracks } from '../spotify';
-import { addSong, getExistingRating } from '../database';
+import { addSong, getExistingRating, incrementProfileData } from '../database';
 import SongItem from '../components/SongItem';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -70,6 +70,7 @@ const SearchScreen = ({ navigation }) => {
           setError('Keinen Interpreten gefunden');
           return;
         }
+        await incrementProfileData("artist_mode_opened")
         const albums = await getArtistAlbums(artist.id);
         setCurrentArtist(artist);
         setArtistAlbums(albums.items);
@@ -82,6 +83,7 @@ const SearchScreen = ({ navigation }) => {
           setError('Keinen Interpreten gefunden');
           return;
         }
+        await incrementProfileData("top_tracks_opened")
         const tracks = await getArtistTopTracks(artist.id);
         setCurrentArtist(artist);
         setArtistTracks(tracks);
@@ -91,6 +93,7 @@ const SearchScreen = ({ navigation }) => {
         // Track-Modus: Normale Song-Suche
         const data = await searchSpotify(query);
         setResults(data.tracks.items.map(validateTrack));
+        await incrementProfileData("songs_searched")
       }
     } catch (err) {
       console.log(err)
@@ -115,9 +118,12 @@ const SearchScreen = ({ navigation }) => {
 
   const handleTrackPress = async (track) => {
     await addSong(track);
+    const existingRating = await getExistingRating(track.id);
+    console.log("Existing Rating: ", existingRating)
     navigation.navigate('Rate', { 
       songId: track.id,
-      initialScore: await getExistingRating(track.id),
+      initialScore: existingRating?.score || null,
+      initialNotes: existingRating?.notes || null,
       ...track
     });
   };
