@@ -14,7 +14,8 @@ const GameScreen = () => {
     showMore: 1,
     showCover: 1,
     showInitial: 1,
-    showDuration: 1
+    showDuration: 1,
+    skip: 1
   });
   const [usedJokers, setUsedJokers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +25,7 @@ const GameScreen = () => {
   const [discography, setDiscography] = useState([]);
   const [usedSongs, setUsedSongs] = useState([]);
   const [currentArtist, setCurrentArtist] = useState(null);
+  const [showDuration, setShowDuration] = useState(false);
 
   useEffect(() => {
     if (discography.length > 0 && usedSongs.length >= discography.length) {
@@ -32,6 +34,10 @@ const GameScreen = () => {
       setUsedSongs([]);
     }
   }, [usedSongs]);
+
+  const skipSong = () => {
+    startGame();
+  };
 
   const fetchDiscography = async (artist) => {
     try {
@@ -44,6 +50,7 @@ const GameScreen = () => {
           const formattedTracks = album_data.tracks.items.map(track => ({
             id: track.id,
             name: track.name,
+            normalizedName: normalizeTitle(track.name),
             artist: track.artists[0]?.name || artist.name,
             album: album_data.name,
             duration: track.duration_ms,
@@ -57,6 +64,13 @@ const GameScreen = () => {
       console.error('Error fetching discography:', error);
       return [];
     }
+  };
+  
+  const formatDuration = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const getRandomSong = (availableDiscography) => {
@@ -77,7 +91,16 @@ const GameScreen = () => {
     }
   };
 
-  const startGame = async () => {
+  const normalizeTitle = (title) => {
+    return title
+      .replace(/\([^)]*\)/g, '')  // Entferne alles in Klammern
+      .replace(/\[[^\]]*\]/g, '') // Entferne alles in eckigen Klammern
+      .trim()                     // Entferne Leerzeichen
+      .toLowerCase()              // Konvertiere zu Kleinbuchstaben
+      .replace(/\s+/g, ' ');      // Entferne überflüssige Leerzeichen
+  };
+
+  const startGame = async (isSkip = false) => {
     if (!artistInput) return;
     setIsLoading(true);
     
@@ -112,7 +135,7 @@ const GameScreen = () => {
         
         lyricsText = await fetchLyrics(artist.name, song.name);
         
-        if (!lyricsText) {
+        if (!lyricsText || lyricsText.includes("instrumental")) {
           localUsedSongs.push(song.id); // Mark as used locally
           availableSongs = availableDiscography.filter(s => 
             !localUsedSongs.includes(s.id)
@@ -146,12 +169,11 @@ const GameScreen = () => {
   const handleGuess = () => {
     if (!currentSong) return;
     
-    const normalizedGuess = guess.trim().toLowerCase();
-    const normalizedTitle = currentSong.name.toLowerCase();
+    const userGuess = normalizeTitle(guess.trim());
+    const correctAnswer = normalizeTitle(currentSong.name);
   
-    if (normalizedGuess === normalizedTitle) {
+    if (userGuess === correctAnswer) {
       setCorrectGuesses(prev => prev + 1);
-      Alert.alert('Richtig!', 'Nächster Song wird geladen...');
       startGame();
     } else {
       if (attempts === 1) {
@@ -170,7 +192,7 @@ const GameScreen = () => {
       } else {
         setAttempts(prev => prev - 1);
         setGuess('');
-        Alert.alert('Falsch!', `Noch ${attempts - 1} Versuche`);
+        //Alert.alert('Falsch!', `Noch ${attempts - 1} Versuche`);
       }
     }
   };
@@ -194,7 +216,10 @@ const GameScreen = () => {
         setShowInitial(true);
         break;
       case 'showDuration':
-        Alert.alert('Songlänge', `${Math.floor(currentSong.duration / 60000)} Minuten`);
+        setShowDuration(true);
+        break;
+      case 'skip':
+        skipSong();
         break;
     }
   };
@@ -254,6 +279,11 @@ const GameScreen = () => {
           {showInitial && (
             <Text style={styles.initialHint}>Anfangsbuchstabe: {currentSong.name[0]}</Text>
           )}
+          {showDuration && (
+            <Text style={styles.durationHint}>
+              Länge: {formatDuration(currentSong.duration)}
+            </Text>
+          )}
 
           <TextInput
             style={styles.input}
@@ -270,6 +300,7 @@ const GameScreen = () => {
                 {renderJokerButton('showCover', 'image')}
                 {renderJokerButton('showInitial', 'text-outline')}
                 {renderJokerButton('showDuration', 'time-outline')}
+                {renderJokerButton('skip', 'play-skip-forward')}
             </View>
           </View>
         </View>
@@ -365,7 +396,13 @@ const styles = StyleSheet.create({
   },
   disabledJoker: {
     opacity: 0.5,
-  }
+  },
+  durationHint: {
+    fontSize: 16,
+    color: '#2A9D8F',
+    textAlign: 'center',
+    marginVertical: 5,
+  },
 });
 
 export default GameScreen;
