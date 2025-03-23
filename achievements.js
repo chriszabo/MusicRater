@@ -378,4 +378,14 @@ export const ACHIEVEMENT_DEFINITIONS = [
     threshold: 30,
     color: '#FFD700'
   },
+  // Game
+  {
+    name: 'artist_specialist',
+    title: 'Lyrics-Spezialist',
+    description: '15-Song-Highscore im Lyrics-Game erreicht',
+    icon: 'person',
+    checkQuery: `SELECT MAX(score) as max FROM game_highscores WHERE profile_name = $profile`,
+    threshold: 15,
+    color: '#2A9D8F'
+  }
   ];

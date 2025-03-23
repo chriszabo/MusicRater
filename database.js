@@ -51,6 +51,17 @@ export const initDatabase = async () => {
         artist_mode_opened INTEGER
     );
     `);
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS game_highscores (
+        profile_name TEXT NOT NULL,
+        artist TEXT NOT NULL,
+        artist_id TEXT NOT NULL,
+        score INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (profile_name, artist_id),
+        FOREIGN KEY (profile_name) REFERENCES profiledata(profile_name)
+      );
+    `);
   }
   return db;
 } catch (error)
@@ -480,4 +491,54 @@ export const deleteRating = async (songId) => {
       GROUP BY album, artist
       ORDER BY ${safeSortBy} ${sortOrder.toUpperCase()}
     `, { $profile: profile });
+  };
+
+  export const updateGameHighscore = async (artist, score) => {
+    const database = await initDatabase();
+    console.log("Update Highscore Artist", artist);
+    console.log("Update Highscore Score", score);
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    if (!profileName) throw new Error('No profile selected');
+    
+    await database.runAsync(
+      `INSERT INTO game_highscores (profile_name, artist, artist_id, score)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(profile_name, artist_id) 
+       DO UPDATE SET score = MAX(score, excluded.score)`,
+      [profileName, artist.name, artist.id, score]
+    );
+  };
+  
+  export const getHighscores = async () => {
+    const database = await initDatabase();
+
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    if (!profileName) throw new Error('No profile selected');
+
+    return await database.getAllAsync(
+      `SELECT artist, score 
+       FROM game_highscores 
+       WHERE profile_name = ? 
+       ORDER BY score DESC`,
+      [profileName]
+    );
+  };
+
+  export const getHighscoreForArtist = async (artistId) => {
+    const database = await initDatabase();
+    
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    if (!profileName) throw new Error('No profile selected');
+
+    const result =  await database.getAllAsync(
+      `SELECT artist_id, score 
+       FROM game_highscores 
+       WHERE profile_name = ? AND artist_id = ?
+       ORDER BY score DESC`,
+      [profileName, artistId]
+    );
+    console.log("Get Highscore for Artist", result)
+    const toReturn = result[0]?.score || 0
+    console.log("ToReturn", toReturn)
+    return toReturn
   };

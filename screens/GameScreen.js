@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, ActivityIndicator, Image, StyleSheet, Alert, View } from 'react-native';
 import { searchArtists, getArtistAlbums, getAlbum } from '../spotify';
+import { updateGameHighscore, getHighscoreForArtist } from '../database';
 import { Ionicons } from '@expo/vector-icons';
 
 const GameScreen = () => {
@@ -26,6 +27,8 @@ const GameScreen = () => {
   const [usedSongs, setUsedSongs] = useState([]);
   const [currentArtist, setCurrentArtist] = useState(null);
   const [showDuration, setShowDuration] = useState(false);
+  const [currentArtistHighscore, setCurrentArtistHighscore] = useState(0);
+
 
   useEffect(() => {
     if (discography.length > 0 && usedSongs.length >= discography.length) {
@@ -41,7 +44,7 @@ const GameScreen = () => {
 
   const fetchDiscography = async (artist) => {
     try {
-      const albums = await getArtistAlbums(artist.id);
+      const albums = await getArtistAlbums(artist.id, "");
       const album_aggregate = [];
       
       for (const album of albums.items) {
@@ -84,29 +87,73 @@ const GameScreen = () => {
       const response = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`);
       if (!response.ok) throw new Error('Lyrics not found');
       const data = await response.json();
-      return data.lyrics;
+      return normalizeLyrics(data.lyrics);
     } catch (error) {
-      //console.error('Lyrics fetch error:', error);
+      console.log('Lyrics fetch error:', artist, title);
       return null;
     }
   };
 
+  const similarityPercentage = (str1, str2) => {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1 === longer ? str2 : str1;
+    const lengthDiff = longer.length - shorter.length;
+    
+    if (lengthDiff > 3) return 0; // Zu großer Längenunterschied
+    
+    // Einfache Ähnlichkeitsberechnung
+    const matchingChars = [...shorter].filter((c, i) => c === longer[i]).length;
+    return (matchingChars / longer.length) * 100;
+  };
+
   const normalizeTitle = (title) => {
-    return title
-      .replace(/\([^)]*\)/g, '')  // Entferne alles in Klammern
+    const removePatterns = title
+      .replace(/\([^)]*\)/g, '')
+      .replace(/\[[^\]]*\]/g, '')
+      .trim();
+  
+    // Trenne am ersten Bindestrich
+    const parts = removePatterns.split(/ - (.*)/);
+    let mainTitle = parts[0];
+    const suffix = parts[1] || '';
+  
+    // Überprüfe auf unerwünschte Schlüsselwörter
+    const unwantedKeywords = ['remaster', 'remastered', 'live', 'special', 'edition', 'version', 'mix', 'edit'];
+    const hasUnwanted = unwantedKeywords.some(keyword => 
+      suffix.toLowerCase().includes(keyword)
+    );
+  
+    // Füge Suffix nur hinzu wenn keine unerwünschten Wörter
+    const cleanTitle = hasUnwanted ? mainTitle : `${mainTitle} ${suffix}`;
+  
+    return cleanTitle
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace(/-/g, ' ') // Bindestriche durch Leerzeichen ersetzen
+      .replace(/\s+/g, ' '); // Mehrfache Leerzeichen reduzieren
+  };
+
+  const normalizeLyrics = (lyricsText) => {
+    if (!lyricsText) return null;
+    if (lyricsText.toLowerCase().includes("instrumental") || lyricsText.toLowerCase().includes("instrutmental"))
+        return "[instrumental]"
+
+    return lyricsText
       .replace(/\[[^\]]*\]/g, '') // Entferne alles in eckigen Klammern
-      .trim()                     // Entferne Leerzeichen
-      .toLowerCase()              // Konvertiere zu Kleinbuchstaben
-      .replace(/\s+/g, ' ');      // Entferne überflüssige Leerzeichen
   };
 
   const startGame = async (isSkip = false) => {
+    console.log("Start Game", artistInput)
     if (!artistInput) return;
     setIsLoading(true);
     
     try {
       const artist = await searchArtists(artistInput);
       if (!artist) throw new Error('Artist not found');
+      const artist_highscore = await getHighscoreForArtist(artist.id)
+      console.log("Artist Highscore", artist_highscore)
+      setCurrentArtistHighscore(artist_highscore)
   
       if (currentArtist?.id !== artist.id) {
         setDiscography([]);
@@ -127,7 +174,7 @@ const GameScreen = () => {
         !localUsedSongs.includes(song.id)
       );
       let song = getRandomSong(availableSongs);
-      let retries = 3;
+      let retries = 30;
       let lyricsText = null;
   
       while (retries > 0 && !lyricsText) {
@@ -135,7 +182,9 @@ const GameScreen = () => {
         
         lyricsText = await fetchLyrics(artist.name, song.name);
         
-        if (!lyricsText || lyricsText.includes("instrumental")) {
+        if (!lyricsText || lyricsText.toLowerCase().includes("instrumental") || lyricsText.toLowerCase().includes("instrutmental") || lyricsText == "[instrumental]") {
+            console.log("Skipping lyrics:", lyricsText)
+            lyricsText = null
           localUsedSongs.push(song.id); // Mark as used locally
           availableSongs = availableDiscography.filter(s => 
             !localUsedSongs.includes(s.id)
@@ -151,8 +200,9 @@ const GameScreen = () => {
       setUsedSongs(localUsedSongs);
   
       if (!song || !lyricsText) throw new Error('Keine spielbaren Songs gefunden');
-  
+      console.log("Dieser Song:", song)
       setCurrentSong(song);
+      setShowDuration(false)
       setLyrics(lyricsText);
       setVisibleLines(5);
       setShowCover(false);
@@ -166,14 +216,19 @@ const GameScreen = () => {
     setIsLoading(false);
   };
 
-  const handleGuess = () => {
+  const handleGuess = async() => {
     if (!currentSong) return;
     
     const userGuess = normalizeTitle(guess.trim());
     const correctAnswer = normalizeTitle(currentSong.name);
+    const similarity = similarityPercentage(userGuess, correctAnswer);
   
-    if (userGuess === correctAnswer) {
-      setCorrectGuesses(prev => prev + 1);
+    if (similarity >= 80) {
+        const newScore = correctGuesses + 1;
+        setCorrectGuesses(newScore);
+        if (currentArtist?.id && newScore > currentArtistHighscore) {
+            await updateGameHighscore(currentArtist, newScore);
+        }
       startGame();
     } else {
       if (attempts === 1) {
@@ -247,7 +302,7 @@ const GameScreen = () => {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.score}>Richtige Songs: {correctGuesses}</Text>
+      <Text style={styles.score}>Korrekt: {correctGuesses} | Alter Highscore: {currentArtistHighscore}</Text>
       
       <TextInput
         style={styles.input}

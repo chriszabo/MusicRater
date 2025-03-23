@@ -137,7 +137,7 @@ const RateScreen = ({ route, navigation }) => {
         placeholder="Notizen..."
         value={notes}
         onChangeText={setNotes}
-        onSubmitEditing={handleText}
+        onEndEditing={handleText}
         multiline
         style={styles.notesInput}
         blurOnSubmit={false}
