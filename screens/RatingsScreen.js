@@ -154,7 +154,7 @@ const RatingsScreen = ({ navigation }) => {
           <View style={styles.item}>
             <Text style={styles.title}>{item.artist}</Text>
             <View style={styles.statsRow}>
-              <Text style={styles.detail}>Ø {(item.avgScore || 0).toFixed(1)}</Text>
+              <Text style={styles.score2}>Ø {(item.avgScore || 0).toFixed(1)}</Text>
               <Text style={styles.detail}>{item.songCount} Songs bewertet</Text>
             </View>
           </View>
@@ -166,7 +166,7 @@ const RatingsScreen = ({ navigation }) => {
             <Text style={styles.title}>{item.album}</Text>
             <View style={styles.statsRow}>
               <Text style={styles.detail}>{item.artist}</Text>
-              <Text style={styles.detail}>Ø {(item.avgScore || 0).toFixed(1)}</Text>
+              <Text style={styles.score2}>Ø {(item.avgScore || 0).toFixed(1)}</Text>
             </View>
             <Text style={styles.detail}>{item.songCount} Songs bewertet</Text>
           </View>
@@ -385,6 +385,12 @@ const styles = StyleSheet.create({
   detail: {
     color: '#666',
     fontSize: 14,
+    marginTop: 2,
+  },
+  score2: {
+    color: COLORS.primary,
+    fontSize: 18,
+    fontWeight: '600',
     marginTop: 2,
   },
   score: {

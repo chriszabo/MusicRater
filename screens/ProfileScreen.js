@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import { getAllRatings, addSong, addRating, resetDatabase, getAllAchievements } from '../database';
+import { getAllRatings, addSong, addRating, resetDatabase, getAllAchievements, initDatabase } from '../database';
 import { COLORS } from '../config/colors';
 
 const ProfileScreen = () => {
@@ -33,7 +33,7 @@ const ProfileScreen = () => {
       Alert.alert("Kein Profil", "Wähle ein Profil, bevor du den Export beginnst");
       return;
     }
-
+    const database = await initDatabase();
     try {
       const ratings = await getAllRatings({}, {});
       const unlockedAchievements = await getAllAchievements();
@@ -42,6 +42,15 @@ const ProfileScreen = () => {
         Alert.alert("Keine Daten", "Du hast keine Ratings auf diesem Profil");
         return;
       }
+
+      const profileData = await database.getAllAsync(
+        'SELECT * FROM profiledata WHERE profile_name = ?',
+        [currentProfile]
+      );
+      const gameHighscores = await database.getAllAsync(
+        'SELECT * FROM game_highscores WHERE profile_name = ?',
+        [currentProfile]
+      );
 
       // Extract unique songs
       const songsMap = new Map();
@@ -70,7 +79,9 @@ const ProfileScreen = () => {
           .map(a => ({
             name: a.name,
             unlocked_at: a.unlocked_at
-          }))
+          })),
+          profiledata: profileData,
+          game_highscores: gameHighscores
       };
 
       const fileUri = FileSystem.documentDirectory + `${currentProfile}_export.json`;
@@ -105,13 +116,14 @@ const ProfileScreen = () => {
       console.log("success")
       const asset = result.assets[0]
       const json = await FileSystem.readAsStringAsync(asset.uri);
-      const { profileName, songs, ratings, achievements } = JSON.parse(json);
+      const { profileName, songs, ratings, achievements, profiledata, game_highscores } = JSON.parse(json);
 
       await AsyncStorage.setItem('currentProfile', profileName);
       setCurrentProfile(profileName);
 
       // Import songs
       for (const song of songs) {
+        song.image = song.image_url;
         console.log("song", song)
         await addSong(song);
       }
@@ -122,13 +134,44 @@ const ProfileScreen = () => {
         await addRating(rating.song_id, rating.score, rating.notes || "");
       }
 
+      const database = await initDatabase();
       if (achievements) {
-        const database = await initDatabase();
         for (const ach of achievements) {
           await database.runAsync(
             `INSERT OR REPLACE INTO achievements (name, profile_name, unlocked_at) 
              VALUES (?, ?, ?)`,
             [ach.name, profileName, ach.unlocked_at]
+          );
+        }
+      }
+
+      if (profiledata) {
+        for (const data of profiledata) {
+          await database.runAsync(
+            `INSERT OR REPLACE INTO profiledata 
+             (profile_name, spotify_links_opened, artist_statistics_opened, 
+              top_tracks_opened, songs_searched, artist_mode_opened) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              data.profile_name,
+              data.spotify_links_opened,
+              data.artist_statistics_opened,
+              data.top_tracks_opened,
+              data.songs_searched,
+              data.artist_mode_opened
+            ]
+          );
+        }
+      }
+  
+      // Import game_highscores
+      if (game_highscores) {
+        for (const hs of game_highscores) {
+          await database.runAsync(
+            `INSERT OR REPLACE INTO game_highscores 
+             (profile_name, artist, artist_id, score, created_at) 
+             VALUES (?, ?, ?, ?, ?)`,
+            [hs.profile_name, hs.artist, hs.artist_id, hs.score, hs.created_at]
           );
         }
       }

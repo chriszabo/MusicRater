@@ -62,18 +62,44 @@ export const searchArtists = async (query) => {
   return data.artists?.items[0];
 };
 
-export const getArtistAlbums = async (artistId) => {
+export const getArtistAlbums = async (artistId, single=",single") => {
   const token = await getAccessToken();
-  console.log("Getting Artist Albums", artistId)
-  const response = await fetch(
-    `https://api.spotify.com/v1/artists/${artistId}/albums?include_groups=album&limit=50`,
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+  let allItems = [];
+  let limit = 50;
+  let offset = 0;
+  let hasMore = true;
+
+  try {
+    while (hasMore) {
+      const response = await fetch(
+        `https://api.spotify.com/v1/artists/${artistId}/albums?` + 
+        new URLSearchParams({
+          include_groups: `album${single}`,
+          limit: limit,
+          offset: offset
+        }),
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!response.ok) throw new Error('API request failed');
+
+      const data = await response.json();
+      allItems = [...allItems, ...data.items];
+      
+      // Überprüfe ob weitere Seiten existieren
+      hasMore = data.items.length >= limit;
+      offset += limit;
     }
-  );
-  return await response.json();
+
+    return { items: allItems };
+  } catch (error) {
+    console.error("Error fetching artist albums:", error);
+    return { items: [] };
+  }
 };
 
 export const getAlbum = async (albumId) => {

@@ -233,43 +233,6 @@ export const ACHIEVEMENT_DEFINITIONS = [
       color: '#B9F2FF' // Diamant
     },
   
-    // Special
-    {
-      name: 'bronze_collector',
-      title: 'Bronze-Sammler',
-      description: 'Alle Bronze-Achievements freigeschaltet',
-      icon: 'medal',
-      checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_bronze'`,
-      threshold: 9, // Anzahl aller Bronze-Achievements im System
-      color: '#8A2BE2' // Bronze
-    },
-    {
-      name: 'silver_collector',
-      title: 'Silber-Sammler',
-      description: 'Alle Silber-Achievements freigeschaltet',
-      icon: 'medal',
-      checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_silver'`,
-      threshold: 9, // Anzahl aller Silber-Achievements im System
-      color: '#8A2BE2'
-    },
-    {
-      name: 'gold_collector',
-      title: 'Gold-Sammler',
-      description: 'Alle Gold-Achievements freigeschaltet',
-      icon: 'medal',
-      checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_gold'`,
-      threshold: 9, // Anzahl der Gold-Achievements
-      color: '#8A2BE2'
-    },
-    {
-      name: 'diamond_collector',
-      title: 'Diamant-Sammler',
-      description: 'Alle Diamant-Achievements freigeschaltet',
-      icon: 'medal',
-      checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_diamond'`,
-      threshold: 3, // Anzahl der Gold-Achievements
-      color: '#8A2BE2'
-    },
     // Spotify-Link Achievements
   {
     name: 'spotify_link',
@@ -354,38 +317,93 @@ export const ACHIEVEMENT_DEFINITIONS = [
   {
     name: 'artist_mode_bronze',
     title: 'Modus-Entdecker',
-    description: '10x Interpretensuche genutzt',
+    description: '50x Interpretensuche genutzt',
     icon: 'person',
     checkQuery: `SELECT artist_mode_opened FROM profiledata WHERE profile_name = $profile`,
-    threshold: 5,
+    threshold: 50,
     color: '#CD7F32'
   },
   {
     name: 'artist_mode_silver',
     title: 'Künstler-Fan',
-    description: '50x Interpretensuche genutzt',
+    description: '100x Interpretensuche genutzt',
     icon: 'person',
     checkQuery: `SELECT artist_mode_opened FROM profiledata WHERE profile_name = $profile`,
-    threshold: 15,
+    threshold: 100,
     color: '#C0C0C0'
   },
   {
     name: 'artist_mode_gold',
     title: 'Künstler-Purist',
-    description: '100x Interpretensuche genutzt',
+    description: '250x Interpretensuche genutzt',
     icon: 'person',
     checkQuery: `SELECT artist_mode_opened FROM profiledata WHERE profile_name = $profile`,
-    threshold: 30,
+    threshold: 250,
     color: '#FFD700'
   },
   // Game
   {
-    name: 'artist_specialist',
+    name: 'artist_specialist_bronze',
     title: 'Lyrics-Spezialist',
-    description: '15-Song-Highscore im Lyrics-Game erreicht',
+    description: '10-Song-Highscore im Lyrics-Game erreicht',
     icon: 'person',
     checkQuery: `SELECT MAX(score) as max FROM game_highscores WHERE profile_name = $profile`,
-    threshold: 15,
-    color: '#2A9D8F'
-  }
+    threshold: 10,
+    color: '#CD7F32'
+  },
+  {
+    name: 'artist_specialist_silver',
+    title: 'Wortkünstler',
+    description: '20-Song-Highscore im Lyrics-Game erreicht',
+    icon: 'person',
+    checkQuery: `SELECT MAX(score) as max FROM game_highscores WHERE profile_name = $profile`,
+    threshold: 20,
+    color: '#C0C0C0'
+  },
+  {
+    name: 'artist_specialist_gold',
+    title: 'Goldene Fressleiste',
+    description: '30-Song-Highscore im Lyrics-Game erreicht',
+    icon: 'person',
+    checkQuery: `SELECT MAX(score) as max FROM game_highscores WHERE profile_name = $profile`,
+    threshold: 30,
+    color: '#FFD700'
+  },
+  // Special
+  {
+    name: 'bronze_collector',
+    title: 'Bronze-Sammler',
+    description: 'Alle Bronze-Achievements freigeschaltet',
+    icon: 'medal',
+    checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_bronze'`,
+    threshold: 10, // Anzahl aller Bronze-Achievements im System
+    color: '#8A2BE2' // Bronze
+  },
+  {
+    name: 'silver_collector',
+    title: 'Silber-Sammler',
+    description: 'Alle Silber-Achievements freigeschaltet',
+    icon: 'medal',
+    checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_silver'`,
+    threshold: 10, // Anzahl aller Silber-Achievements im System
+    color: '#8A2BE2'
+  },
+  {
+    name: 'gold_collector',
+    title: 'Gold-Sammler',
+    description: 'Alle Gold-Achievements freigeschaltet',
+    icon: 'medal',
+    checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_gold'`,
+    threshold: 10, // Anzahl der Gold-Achievements
+    color: '#8A2BE2'
+  },
+  {
+    name: 'diamond_collector',
+    title: 'Diamant-Sammler',
+    description: 'Alle Diamant-Achievements freigeschaltet',
+    icon: 'medal',
+    checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_diamond'`,
+    threshold: 3, // Anzahl der Gold-Achievements
+    color: '#8A2BE2'
+  },
   ];

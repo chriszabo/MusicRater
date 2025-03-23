@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, TextInput, Button, Text, StyleSheet, Image} from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Image, ScrollView, KeyboardAvoidingView, Platform} from 'react-native';
 import { addSong, addRating } from '../database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
@@ -64,39 +64,50 @@ const CustomRatingScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={DEFAULT_IMAGE} style={styles.image} resizeMode="cover"/>
-      
-      <TextInput
-        placeholder="Songtitel"
-        value={title}
-        onChangeText={setTitle}
-        style={styles.input}
-      />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+    >
+      <ScrollView 
+        contentContainerStyle={[styles.container, {paddingBottom: 30}]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Image source={DEFAULT_IMAGE} style={styles.image} resizeMode="cover"/>
+        
+        <TextInput
+          placeholder="Songtitel"
+          value={title}
+          onChangeText={setTitle}
+          style={styles.input}
+        />
 
-      <TextInput
-        placeholder="Interpret"
-        value={artist}
-        onChangeText={setArtist}
-        style={styles.input}
-      />
-      
-      <TextInput
-        placeholder="Album"
-        value={album}
-        onChangeText={setAlbum}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="Interpret"
+          value={artist}
+          onChangeText={setArtist}
+          style={styles.input}
+        />
+        
+        <TextInput
+          placeholder="Album"
+          value={album}
+          onChangeText={setAlbum}
+          style={styles.input}
+        />
 
-      <TextInput
-        placeholder="Notizen"
-        value={notes}
-        onChangeText={setNotes}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="Notizen"
+          value={notes}
+          onChangeText={setNotes}
+          style={[styles.input, { height: 100 }]}
+          multiline
+          blurOnSubmit={false}
+          textAlignVertical="top" // Text startet oben bei Android
+          returnKeyType="done"
+        />
 
-
-      <Text style={styles.scoreText}>{Math.round(score)}/10</Text>
+        <Text style={styles.scoreText}>{Math.round(score)}/10</Text>
       <Slider
         minimumValue={0}
         maximumValue={10}
@@ -109,27 +120,30 @@ const CustomRatingScreen = () => {
         thumbTintColor="#2A9D8F"
       />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {success ? <Text style={styles.success}>{success}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {success ? <Text style={styles.success}>{success}</Text> : null}
 
-      <Button 
-        title="Rating speichern" 
-        onPress={handleSubmit} 
-        color="#2A9D8F" 
-      />
-    </View>
+        <View style={{ marginTop: 20 }}>
+          <Button 
+            title="Rating speichern" 
+            onPress={handleSubmit} 
+            color="#2A9D8F" 
+          />
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
     backgroundColor: '#F8F9FA',
   },
   image: {
-    width: '100%',
-    height: 250,
+    width: '80%',
+    height: 150,
     alignSelf: 'center',
     marginBottom: 20,
     borderRadius: 10,

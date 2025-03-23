@@ -18,6 +18,7 @@ import AlbumTracksScreen from './screens/AlbumTracksScreen';
 import CustomRatingScreen from './screens/CustomRatingScreen';
 import AchievementScreen from './screens/AchievementScreen';
 import GameScreen from './screens/GameScreen';
+import { COLORS } from './config/colors';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -96,7 +97,7 @@ function App() {
                   }
                   return <Ionicons name={iconName} size={size} color={color} />;
                 },
-                tabBarActiveTintColor: '#1EB1FC',
+                tabBarActiveTintColor: COLORS.primary,
                 tabBarInactiveTintColor: 'gray',
                 headerShown: false,
               })}
@@ -115,12 +116,12 @@ function App() {
                   )
                 }} 
               />
-              <Tab.Screen name="Ratings" component={RatingsStackScreen} options={{ title: 'Meine Ratings' }} />
+              <Tab.Screen name="Ratings" component={RatingsStackScreen} options={{ title: 'Ratings' }} />
               <Tab.Screen 
                   name="Statistics" 
                   component={StatisticsScreen} 
                   options={{ 
-                    title: 'Statistiken',
+                    title: 'Stats',
                     tabBarIcon: ({ focused, color, size }) => (
                       <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} size={size} color={color} />
                     )
@@ -146,6 +147,16 @@ function App() {
                     )
                   }}
                 />
+                <Tab.Screen 
+                name="Game" 
+                component={GameScreen} 
+                options={{ 
+                  title: 'Game',
+                  tabBarIcon: ({ color, size }) => (
+                    <Ionicons name="game-controller" size={size} color={color} />
+                  )
+                }}
+              />
               <Tab.Screen 
                   name="Profile" 
                   component={ProfileScreen} 
@@ -156,16 +167,7 @@ function App() {
                     )
                   }} 
                 />
-                <Tab.Screen 
-  name="Game" 
-  component={GameScreen} 
-  options={{ 
-    title: 'Spiel',
-    tabBarIcon: ({ color, size }) => (
-      <Ionicons name="game-controller" size={size} color={color} />
-    )
-  }}
-/>
+ 
             </Tab.Navigator>
           </SafeAreaView>
         </NavigationContainer>

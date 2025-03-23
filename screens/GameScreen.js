@@ -39,7 +39,7 @@ const GameScreen = () => {
   }, [usedSongs]);
 
   const skipSong = () => {
-    startGame();
+    startGame(false);
   };
 
   const fetchDiscography = async (artist) => {
@@ -143,33 +143,72 @@ const GameScreen = () => {
       .replace(/\[[^\]]*\]/g, '') // Entferne alles in eckigen Klammern
   };
 
-  const startGame = async (isSkip = false) => {
-    console.log("Start Game", artistInput)
+  const resetGameState = (fullReset = false) => {
+    setAttempts(3);
+    setGuess('');
+    setVisibleLines(5);
+    setShowCover(false);
+    setShowInitial(false);
+    setShowDuration(false);
+    
+    // Nur bei vollständigem Reset
+    if(fullReset) {
+      setCorrectGuesses(0);
+      setJokers({
+        showMore: 1,
+        showCover: 1,
+        showInitial: 1,
+        showDuration: 1,
+        skip: 1
+      });
+      setUsedSongs([]);
+      setUsedJokers([]); // Reset der verwendeten Joker-Liste
+    }
+  };
+
+  const startGame = async (isNewGame = true) => {
+    console.log("Start Game", artistInput);
+    let reset_flag = null
     if (!artistInput) return;
     setIsLoading(true);
-    
+
     try {
       const artist = await searchArtists(artistInput);
       if (!artist) throw new Error('Artist not found');
-      const artist_highscore = await getHighscoreForArtist(artist.id)
-      console.log("Artist Highscore", artist_highscore)
-      setCurrentArtistHighscore(artist_highscore)
-  
-      if (currentArtist?.id !== artist.id) {
-        setDiscography([]);
-        setUsedSongs([]);
-        setCurrentArtist(artist);
-      }
-  
-      let availableDiscography = discography;
+
+      if(isNewGame) {
+        const artist_highscore = await getHighscoreForArtist(artist.id);
+        setCurrentArtistHighscore(artist_highscore);
+        resetGameState(true); // Vollständiger Reset
+        console.log("Current artist", currentArtist)
+        console.log("New artist", artist)
+        
+        if(currentArtist?.id !== artist.id) {
+            console.log("Resetting disco")
+          setDiscography([]);
+          setCurrentArtist(artist);
+          reset_flag = true;
+
+        }
+      } else {
+        // Teilreset: Behalte Joker-Zustand
+        setAttempts(3);
+        setGuess('');
+        setVisibleLines(5);
+        setShowCover(false);
+        setShowInitial(false);
+        setShowDuration(false);
+    }
+    
+    let availableDiscography = (reset_flag) ? []: discography;
       
       if (!availableDiscography.length) {
         availableDiscography = await fetchDiscography(artist);
         setDiscography(availableDiscography);
       }
-  
-      // Create local copy of used songs
-      let localUsedSongs = [...usedSongs];
+
+      // Songauswahl-Logik
+      let localUsedSongs = isNewGame ? [] : [...usedSongs];
       let availableSongs = availableDiscography.filter(song => 
         !localUsedSongs.includes(song.id)
       );
@@ -180,7 +219,7 @@ const GameScreen = () => {
       while (retries > 0 && !lyricsText) {
         if (!song) break;
         
-        lyricsText = await fetchLyrics(artist.name, song.name);
+        lyricsText = await fetchLyrics(artist.name, normalizeTitle(song.name));
         
         if (!lyricsText || lyricsText.toLowerCase().includes("instrumental") || lyricsText.toLowerCase().includes("instrutmental") || lyricsText == "[instrumental]") {
             console.log("Skipping lyrics:", lyricsText)
@@ -197,7 +236,11 @@ const GameScreen = () => {
       }
   
       // Update global used songs state
-      setUsedSongs(localUsedSongs);
+      if(!isNewGame) {
+        setUsedSongs([...localUsedSongs]);
+      } else {
+        setUsedSongs(localUsedSongs);
+      }
   
       if (!song || !lyricsText) throw new Error('Keine spielbaren Songs gefunden');
       console.log("Dieser Song:", song)
@@ -216,38 +259,30 @@ const GameScreen = () => {
     setIsLoading(false);
   };
 
-  const handleGuess = async() => {
+  const handleGuess = async () => {
     if (!currentSong) return;
     
     const userGuess = normalizeTitle(guess.trim());
     const correctAnswer = normalizeTitle(currentSong.name);
     const similarity = similarityPercentage(userGuess, correctAnswer);
-  
+
     if (similarity >= 80) {
-        const newScore = correctGuesses + 1;
-        setCorrectGuesses(newScore);
-        if (currentArtist?.id && newScore > currentArtistHighscore) {
-            await updateGameHighscore(currentArtist, newScore);
-        }
-      startGame();
+      const newScore = correctGuesses + 1;
+      setCorrectGuesses(newScore);
+      
+      if (currentArtist?.id && newScore > currentArtistHighscore) {
+        await updateGameHighscore(currentArtist, newScore);
+      }
+      
+      // Nur neuen Song laden, kein vollständiger Reset
+      startGame(false);
     } else {
       if (attempts === 1) {
-        // Reset bei Spielverlust
-        setCorrectGuesses(0);
-        setJokers({
-          showMore: 1,
-          showCover: 1,
-          showInitial: 1,
-          showDuration: 1
-        });
-        setUsedJokers([]);
-        
         Alert.alert('Verloren!', `Der Song war: ${currentSong.name}`);
-        startGame();
+        startGame(true); // Vollständiger Reset bei Game Over
       } else {
         setAttempts(prev => prev - 1);
         setGuess('');
-        //Alert.alert('Falsch!', `Noch ${attempts - 1} Versuche`);
       }
     }
   };
@@ -314,7 +349,7 @@ const GameScreen = () => {
         style={styles.startButton}
         onPress={startGame}
       >
-        <Text style={styles.buttonText}>Spiel starten</Text>
+        <Text style={styles.buttonText}>Neues Spiel starten</Text>
       </TouchableOpacity>
 
       {isLoading && <ActivityIndicator size="large" style={styles.loader} />}
