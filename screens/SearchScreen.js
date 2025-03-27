@@ -72,7 +72,7 @@ const SearchScreen = ({ navigation }) => {
     setArtistTracks([]);
     setResults([]);
     setCurrentArtist(null);
-    setQuery('');
+    //setQuery('');
   };
 
   const handleSearch = async () => {
@@ -142,8 +142,8 @@ const SearchScreen = ({ navigation }) => {
     console.log("Existing Rating: ", existingRating)
     navigation.navigate('Rate', { 
       songId: track.id,
-      initialScore: existingRating?.score || null,
-      initialNotes: existingRating?.notes || null,
+      initialScore: existingRating?.score ?? null,
+      initialNotes: existingRating?.notes ?? null,
       ...track
     });
   };

@@ -4,6 +4,7 @@ import Slider from '@react-native-community/slider';
 import { addRating, deleteRating, incrementProfileData } from '../database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
+import PieChartRating from '../components/PieChartRating';
 
 
 const COLORS = {
@@ -21,7 +22,11 @@ const LOCAL_IMAGES = {
 
 const RateScreen = ({ route, navigation }) => {
   const { songId, initialScore, title, artist, album, image, created_at, initialNotes} = route.params;
-  const [score, setScore] = useState(initialScore ? parseFloat(initialScore) : 5.0);
+  const [score, setScore] = useState(
+    initialScore !== undefined && initialScore !== null 
+      ? parseFloat(initialScore) 
+      : 5.0
+  );
   const [notes, setNotes] = useState(initialNotes)
   const sliderValue = useRef(score); // useRef für den Slider-Wert
   const [showSavedMessage, setShowSavedMessage] = useState(false);

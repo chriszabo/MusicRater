@@ -74,7 +74,6 @@ const RatingsScreen = ({ navigation }) => {
           result = await getAlbumStats(sortBy, sortOrder);
           break;
       }
-      console.log("Hey")
       setData(result);
     } catch (err) {
       console.error(err);

@@ -57,8 +57,8 @@ const AlbumTracksScreen = ({ route, navigation }) => {
     const existingRating = await getExistingRating(item.id);
     navigation.navigate('Rate', { 
       songId: item.id,
-      initialScore: existingRating?.score || null,
-      initialNotes: existingRating?.notes || null,
+      initialScore: existingRating?.score ?? null,
+      initialNotes: existingRating?.notes ?? null,
       title: item.title,
       artist: item.artist,
       album: item.album,
