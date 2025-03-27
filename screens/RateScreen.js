@@ -4,7 +4,6 @@ import Slider from '@react-native-community/slider';
 import { addRating, deleteRating, incrementProfileData } from '../database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
-import PieChartRating from '../components/PieChartRating';
 
 
 const COLORS = {
