@@ -369,6 +369,61 @@ export const ACHIEVEMENT_DEFINITIONS = [
     threshold: 30,
     color: '#FFD700'
   },
+  // Full Albums
+  {
+    name: 'album_completion_bronze',
+    title: 'Album-Vollender (Bronze)',
+    description: '5 Alben komplett bewertet',
+    icon: 'disc',
+    checkQuery: `
+      SELECT COUNT(*) FROM (
+        SELECT s.album_id 
+        FROM ratings r
+        JOIN songs s ON r.song_id = s.id 
+        WHERE r.profile_name = $profile 
+          AND s.album_id IS NOT NULL
+        GROUP BY s.album_id 
+        HAVING COUNT(DISTINCT r.song_id) >= s.album_tracks AND s.album_tracks > 0
+      )`,
+    threshold: 5,
+    color: '#CD7F32'
+  },
+  {
+    name: 'album_completion_silver',
+    title: 'Album-Vollender (Silber)',
+    description: '20 Alben komplett bewertet',
+    icon: 'disc',
+    checkQuery: `
+      SELECT COUNT(*) FROM (
+        SELECT s.album_id 
+        FROM ratings r
+        JOIN songs s ON r.song_id = s.id 
+        WHERE r.profile_name = $profile 
+          AND s.album_id IS NOT NULL
+        GROUP BY s.album_id 
+        HAVING COUNT(DISTINCT r.song_id) >= s.album_tracks AND s.album_tracks > 0
+      )`,
+    threshold: 20,
+    color: '#C0C0C0'
+  },
+  {
+    name: 'album_completion_gold',
+    title: 'Album-Vollender (Gold)',
+    description: '50 Alben komplett bewertet',
+    icon: 'disc',
+    checkQuery: `
+      SELECT COUNT(*) FROM (
+        SELECT s.album_id 
+        FROM ratings r
+        JOIN songs s ON r.song_id = s.id 
+        WHERE r.profile_name = $profile 
+          AND s.album_id IS NOT NULL
+        GROUP BY s.album_id 
+        HAVING COUNT(DISTINCT r.song_id) >= s.album_tracks AND s.album_tracks > 0
+      )`,
+    threshold: 50,
+    color: '#FFD700'
+  },
   // Special
   {
     name: 'bronze_collector',
@@ -376,7 +431,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     description: 'Alle Bronze-Achievements freigeschaltet',
     icon: 'medal',
     checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_bronze'`,
-    threshold: 10, // Anzahl aller Bronze-Achievements im System
+    threshold: 11, // Anzahl aller Bronze-Achievements im System
     color: '#8A2BE2' // Bronze
   },
   {
@@ -385,7 +440,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     description: 'Alle Silber-Achievements freigeschaltet',
     icon: 'medal',
     checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_silver'`,
-    threshold: 10, // Anzahl aller Silber-Achievements im System
+    threshold: 11, // Anzahl aller Silber-Achievements im System
     color: '#8A2BE2'
   },
   {
@@ -394,7 +449,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     description: 'Alle Gold-Achievements freigeschaltet',
     icon: 'medal',
     checkQuery: `SELECT COUNT(*) FROM achievements WHERE profile_name = $profile AND name LIKE '%_gold'`,
-    threshold: 10, // Anzahl der Gold-Achievements
+    threshold: 11, // Anzahl der Gold-Achievements
     color: '#8A2BE2'
   },
   {

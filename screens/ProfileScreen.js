@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, Alert, ScrollView, TouchableOpacity } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Text, Alert, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -13,6 +13,7 @@ const ProfileScreen = () => {
   const [currentProfile, setCurrentProfile] = useState('');
   const [topArtistsLimit, setTopArtistsLimit] = useState('');
   const [topAlbumsLimit, setTopAlbumsLimit] = useState('');
+  const [showIncompleteAlbums, setShowIncompleteAlbums] = useState(true);
 
   useEffect(() => {
     loadProfile();
@@ -24,23 +25,37 @@ const ProfileScreen = () => {
       setCurrentProfile(name);
       const db = await initDatabase();
       const profileData = await db.getFirstAsync(
-        'SELECT top_artists_limit, top_albums_limit FROM profiledata WHERE profile_name = ?',
+        'SELECT top_artists_limit, top_albums_limit, show_incomplete_albums FROM profiledata WHERE profile_name = ?',
         [name]
       );
       setTopArtistsLimit(profileData?.top_artists_limit?.toString() || '5');
       setTopAlbumsLimit(profileData?.top_albums_limit?.toString() || '10');
+      setShowIncompleteAlbums(profileData?.show_incomplete_albums !== 0);
     }
   };
 
   const updateLimits = async () => {
     const db = await initDatabase();
     await db.runAsync(
+      `INSERT OR IGNORE INTO profiledata (
+        profile_name
+      ) VALUES (?)`,
+      [currentProfile]
+    );
+    await db.runAsync(
       `UPDATE profiledata SET
         top_artists_limit = ?,
-        top_albums_limit = ?
+        top_albums_limit = ?,
+        show_incomplete_albums = ?
       WHERE profile_name = ?`,
-      [parseInt(topArtistsLimit) || 5, parseInt(topAlbumsLimit) || 10, currentProfile]
+      [
+        parseInt(topArtistsLimit) || 5,
+        parseInt(topAlbumsLimit) || 10,
+        showIncompleteAlbums ? 1 : 0,
+        currentProfile
+      ]
     );
+    console.log("Limits angepasst.", showIncompleteAlbums ? 1 : 0)
     Alert.alert("Erfolg", "Einstellungen gespeichert!");
   };
 
@@ -71,6 +86,13 @@ const ProfileScreen = () => {
         'SELECT * FROM profiledata WHERE profile_name = ?',
         [currentProfile]
       );
+
+      // const profileData = await database.getFirstAsync(
+      //   'SELECT top_artists_limit, top_albums_limit, show_incomplete_albums FROM profiledata WHERE profile_name = ?',
+      //   [currentProfile]
+      // );
+
+      console.log("Export", profileData)
       const gameHighscores = await database.getAllAsync(
         'SELECT * FROM game_highscores WHERE profile_name = ?',
         [currentProfile]
@@ -176,15 +198,18 @@ const ProfileScreen = () => {
           await database.runAsync(
             `INSERT OR REPLACE INTO profiledata 
              (profile_name, spotify_links_opened, artist_statistics_opened, 
-              top_tracks_opened, songs_searched, artist_mode_opened) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
+              top_tracks_opened, songs_searched, artist_mode_opened, top_artists_limit, top_albums_limit, show_incomplete_albums) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               data.profile_name,
               data.spotify_links_opened,
               data.artist_statistics_opened,
               data.top_tracks_opened,
               data.songs_searched,
-              data.artist_mode_opened
+              data.artist_mode_opened,
+              data?.top_artists_limit || 5,
+              data?.top_albums_limit || 10,
+              data?.show_incomplete_albums ?? 1
             ]
           );
         }
@@ -201,6 +226,9 @@ const ProfileScreen = () => {
           );
         }
       }
+
+      await migrateAlbumInfo();
+      await loadProfile();
 
       Alert.alert("Erfolg", `Profil "${profileName}" importiert!`);
     } catch (error) {
@@ -278,6 +306,15 @@ const ProfileScreen = () => {
             value={topAlbumsLimit}
             onChangeText={setTopAlbumsLimit}
             keyboardType="numeric"
+          />
+        </View>
+
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Unvollständige Alben anzeigen?</Text>
+          <Switch
+            value={showIncompleteAlbums}
+            onValueChange={setShowIncompleteAlbums}
+            trackColor={{ true: COLORS.primary }}
           />
         </View>
 
@@ -372,6 +409,9 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 15,
   },
   settingLabel: {
@@ -380,6 +420,9 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     fontWeight: '500',
   },
+  switch: {
+    transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
+  }
 });
 
 export default ProfileScreen;

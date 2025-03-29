@@ -47,13 +47,14 @@ export const initDatabase = async () => {
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS profiledata (
         profile_name PRIMARY KEY,
-        spotify_links_opened INTEGER,
-        artist_statistics_opened INTEGER,
-        top_tracks_opened INTEGER,
-        songs_searched INTEGER,
-        artist_mode_opened INTEGER,
+        spotify_links_opened INTEGER DEFAULT 0,
+        artist_statistics_opened INTEGER DEFAULT 0,
+        top_tracks_opened INTEGER DEFAULT 0,
+        songs_searched INTEGER DEFAULT 0,
+        artist_mode_opened INTEGER DEFAULT 0,
         top_artists_limit INTEGER DEFAULT 5,
-        top_albums_limit INTEGER DEFAULT 10
+        top_albums_limit INTEGER DEFAULT 10,
+        show_incomplete_albums INTEGER DEFAULT 1
     );
     `);
     await db.execAsync(`
@@ -257,7 +258,7 @@ export const deleteRating = async (songId) => {
 
   export const getOverallStats = async (profileName) => {
     const database = await initDatabase();
-    
+    console.log("Profilename", profileName)
     // Gesamtanzahl und Durchschnitt
     const overallStats = await database.getFirstAsync(`
     SELECT 
@@ -268,10 +269,10 @@ export const deleteRating = async (songId) => {
     WHERE profile_name = $profile
   `, { $profile: profileName });
   
-    const profileData = await database.getFirstAsync(
-      'SELECT top_artists_limit, top_albums_limit FROM profiledata WHERE profile_name = ?',
-      [profileName]
-    );
+  const profileData = await database.getFirstAsync(
+    'SELECT top_artists_limit, top_albums_limit, show_incomplete_albums FROM profiledata WHERE profile_name = ?',
+    [profileName]
+  );
 
     // Top Artists mit Limit
     const topArtists = await database.getAllAsync(`
@@ -300,11 +301,44 @@ export const deleteRating = async (songId) => {
       ORDER BY avgRating DESC
       LIMIT ${profileData?.top_albums_limit || 10}
     `, { $profile: profileName });
+
+    const completedAlbums = await database.getAllAsync(`
+      SELECT 
+        s.album_id,
+        s.album,
+        s.artist,
+        COUNT(DISTINCT r.song_id) as rated_tracks,
+        s.album_tracks as total_tracks
+      FROM ratings r
+      JOIN songs s ON r.song_id = s.id 
+      WHERE r.profile_name = $profile 
+        AND s.album_id IS NOT NULL
+      GROUP BY s.album_id 
+      HAVING rated_tracks >= total_tracks AND total_tracks > 0
+    `, { $profile: profileName });
+
+    const incompleteAlbums = await database.getAllAsync(`
+      SELECT 
+        s.album_id,
+        s.album,
+        s.artist,
+        COUNT(DISTINCT r.song_id) as rated_tracks,
+        s.album_tracks as total_tracks
+      FROM ratings r
+      JOIN songs s ON r.song_id = s.id 
+      WHERE r.profile_name = $profile 
+        AND s.album_id IS NOT NULL
+      GROUP BY s.album_id 
+      HAVING rated_tracks < total_tracks
+    `, { $profile: profileName });
   
     return {
       totalSongs: overallStats.totalSongs || 0,
       averageRating: overallStats.averageRating || 0,
       perfectRatings: overallStats.perfectRatings || 0,
+      completedAlbums: completedAlbums || [],
+      incompleteAlbums: incompleteAlbums || [],
+      profileData: profileData,
       topArtists: topArtists.map(a => ({
         artist: a.artist,
         avgRating: a.avgRating,

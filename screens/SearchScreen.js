@@ -1,15 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, FlatList, TextInput, Button, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image } from 'react-native';
-import { searchSpotify, searchArtists, getAlbum, getArtistAlbums, getArtistTopTracks } from '../spotify';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, FlatList, TextInput, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image } from 'react-native';
+import { searchSpotify, searchArtists, getArtistAlbums, getArtistTopTracks } from '../spotify';
 import { addSong, getExistingRating, incrementProfileData, getAllRatings, getAlbumStatsById } from '../database';
 import SongItem from '../components/SongItem';
 import { Ionicons } from '@expo/vector-icons';
-
-const modeIcons = {
-  track: 'person',
-  artist: 'trophy',
-  topTracks: 'musical-notes'
-};
+import { useFocusEffect } from '@react-navigation/native';
 
 const modeConfig = {
   track: {
@@ -37,115 +32,21 @@ const SearchScreen = ({ navigation }) => {
   const [currentArtist, setCurrentArtist] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
-  const [mode, setMode] = useState('track'); // 'track', 'artist' oder 'topTracks'
+  const [mode, setMode] = useState('track');
   const [existingRatings, setExistingRatings] = useState([]);
   const [albumStats, setAlbumStats] = useState({});
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', loadStuff);
-    loadStuff();
-    return unsubscribe;
-  }, [navigation]);
-
-  const loadStuff = async () => {
-    loadExistingRatings();
-    if (artistAlbums.length > 0) loadAlbumStats();
-
-  }
-
-  const loadAlbumStats = async () => {
-    const stats = {};
-    for (const album of artistAlbums) {
-      try {
-        const data = await getAlbumStatsById(album.id);
-        stats[album.id] = {
-          avg: data?.avgScore || 0,
-          rated: data?.ratedSongs || 0,
-          total: album.total_tracks
-        };
-      } catch (e) {
-        stats[album.id] = { avg: 0, rated: 0, total: album.total_tracks };
-      }
-    }
-    setAlbumStats(stats);
-  };
-  
-  const modeTitles = {
-    track: 'Zur Interpreten-Suche',
-    artist: 'Zur Top-Tracks-Suche',
-    topTracks: 'Zur Song-Suche'
-  };
-
-  const loadExistingRatings = async () => {
-    console.log("Load existing ratings, hihi")
-    const ratings = await getAllRatings({}, {});
-    console.log("Ratings", ratings)
-    setExistingRatings(ratings);
-  };
-  
-  // Hilfsfunktion, um den Score zu finden
-  const getScoreForSong = (songId) => {
-    const rating = existingRatings.find(r => r.song_id === songId);
-    return rating?.score;
-  };
-
-  const handleModeToggle = () => {
-    setMode(prev => modeConfig[prev].next);
-    // Zustände zurücksetzen
-    setArtistAlbums([]);
-    setArtistTracks([]);
-    setResults([]);
-    setCurrentArtist(null);
-    //setQuery('');
-  };
-
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-    Keyboard.dismiss();
-    
-    try {
-      setIsSearching(true);
-      setError('');
-
-      if (mode === 'artist') {
-        // Artist-Modus: Suche nach Interpretenn und Alben
-        const artist = await searchArtists(query);
-        if (!artist) {
-          setError('Keinen Interpreten gefunden');
-          return;
-        }
-        await incrementProfileData("artist_mode_opened")
-        const albums = await getArtistAlbums(artist.id);
-        setCurrentArtist(artist);
-        setArtistAlbums(albums.items);
-        setResults([]);
-      } 
-      else if (mode === 'topTracks') {
-        // TopTracks-Modus: Suche nach Interpreten und Top-Tracks
-        const artist = await searchArtists(query);
-        if (!artist) {
-          setError('Keinen Interpreten gefunden');
-          return;
-        }
-        await incrementProfileData("top_tracks_opened")
-        const tracks = await getArtistTopTracks(artist.id);
-        setCurrentArtist(artist);
-        setArtistTracks(tracks);
-        setResults([]);
-      }
-      else {
-        // Track-Modus: Normale Song-Suche
-        const data = await searchSpotify(query);
-        setResults(data.tracks.items.map(validateTrack));
-        await incrementProfileData("songs_searched")
-      }
-    } catch (err) {
-      console.log(err)
-      setError('Suche fehlgeschlagen');
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  // Daten laden bei Fokus und Änderungen
+  useFocusEffect(
+    useCallback(() => {
+      const loadData = async () => {
+        await loadExistingRatings();
+        if (artistAlbums.length > 0) await loadAlbumStats();
+      };
+      loadData();
+    }, [artistAlbums])
+  );
 
   const validateTrack = (track) => ({
     id: track.id || '',
@@ -158,144 +59,189 @@ const SearchScreen = ({ navigation }) => {
     album_tracks: track.album?.total_tracks || 0,
   });
 
-  const handleAlbumPress = (albumId) => {
-    navigation.navigate('AlbumTracks', { albumId });
-  };
+  // Album-Statistiken mit Parallelisierung
+  const loadAlbumStats = useCallback(async () => {
+    setIsLoadingStats(true);
+    try {
+      const statsPromises = artistAlbums.map(async album => {
+        try {
+          const data = await getAlbumStatsById(album.id);
+          return {
+            id: album.id,
+            avg: data?.avgScore || 0,
+            rated: data?.ratedSongs || 0,
+            total: album.total_tracks
+          };
+        } catch (e) {
+          return { id: album.id, avg: 0, rated: 0, total: album.total_tracks };
+        }
+      });
 
-  const handleTrackPress = async (track) => {
+      const statsResults = await Promise.all(statsPromises);
+      const newStats = statsResults.reduce((acc, curr) => {
+        acc[curr.id] = curr;
+        return acc;
+      }, {});
+      
+      setAlbumStats(newStats);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [artistAlbums]);
+
+  // Existierende Bewertungen laden
+  const loadExistingRatings = useCallback(async () => {
+    const ratings = await getAllRatings({}, {});
+    setExistingRatings(ratings);
+  }, []);
+
+  // Track-Suche handler
+  const handleSearch = useCallback(async () => {
+    if (!query.trim()) return;
+    Keyboard.dismiss();
+    
+    try {
+      setIsSearching(true);
+      setError('');
+
+      if (mode === 'artist') {
+        const artist = await searchArtists(query);
+        if (!artist) throw new Error('Keinen Interpreten gefunden');
+        
+        await incrementProfileData("artist_mode_opened");
+        const albums = await getArtistAlbums(artist.id);
+        setArtistAlbums(albums.items);
+        setCurrentArtist(artist);
+        setResults([]);
+      } 
+      else if (mode === 'topTracks') {
+        const artist = await searchArtists(query);
+        if (!artist) throw new Error('Keinen Interpreten gefunden');
+        
+        await incrementProfileData("top_tracks_opened");
+        const tracks = await getArtistTopTracks(artist.id);
+        setArtistTracks(tracks.map(validateTrack));
+        setCurrentArtist(artist);
+        setResults([]);
+      } 
+      else {
+        const data = await searchSpotify(query);
+        setResults(data.tracks.items.map(validateTrack));
+        await incrementProfileData("songs_searched");
+      }
+    } catch (err) {
+      setError(err.message || 'Suche fehlgeschlagen');
+    } finally {
+      setIsSearching(false);
+    }
+  }, [query, mode]);
+
+  // Track press handler mit aktualisiertem Callback
+  const handleTrackPress = useCallback(async (track) => {
     await addSong(track);
     const existingRating = await getExistingRating(track.id);
-    console.log("Existing Rating: ", existingRating)
-    navigation.navigate('Rate', { 
+    
+    navigation.navigate('Rate', {
       songId: track.id,
       initialScore: existingRating?.score ?? null,
       initialNotes: existingRating?.notes ?? null,
-      ...track
+      ...track,
+      onGoBack: async () => {
+        await loadExistingRatings();
+        if (artistAlbums.length > 0) await loadAlbumStats();
+      }
     });
-  };
+  }, [artistAlbums]);
+
+  // Memoized Komponenten
+  const AlbumItem = useCallback(({ item }) => {
+    const stats = albumStats[item.id];
+    const isFullyRated = stats?.rated === item.total_tracks;
+
+    return (
+      <TouchableOpacity 
+        style={[styles.albumItem, isFullyRated && styles.fullyRatedAlbum]}
+        onPress={() => navigation.navigate('AlbumTracks', { albumId: item.id })}
+      >
+        <Image source={{ uri: item.images[0]?.url }} style={styles.albumImage} />
+        <View style={styles.albumInfo}>
+          <Text style={styles.albumTitle}>{item.name}</Text>
+          {stats && (
+            <Text style={styles.albumDetails}>
+              {`${stats.rated}/${item.total_tracks} Songs • ${new Date(item.release_date).getFullYear()}`}
+              <Text style={styles.ratingInfo}>{` • Ø ${stats.avg.toFixed(1)}`}</Text>
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }, [albumStats]);
 
   const renderContent = () => {
     if (error) return <Text style={styles.error}>{error}</Text>;
     if (isSearching) return <ActivityIndicator size="large" />;
-    
-    if (mode === 'artist' && artistAlbums.length > 0) {
-      return renderAlbums();
-    }
-    if (mode === 'topTracks' && artistTracks.length > 0) {
-      return renderTopTracks();
-    }
-    if (results.length > 0) {
-      return renderTracks();
-    }
-    
+
     return (
-      <Text style={styles.prompt}>
-        {mode === 'artist' 
-          ? "Suche nach Interpreten, um ihre Alben zu sehen"
-          : mode === 'topTracks'
-          ? "Suche nach Interpreten, um ihre Spotify Top-Tracks zu sehen"
-          : "Suche nach Songs, um sie zu bewerten"}
-      </Text>
+      <FlatList
+        data={getCurrentData()}
+        keyExtractor={item => item.id}
+        ListEmptyComponent={<EmptyState />}
+        renderItem={renderItem}
+        ListHeaderComponent={isLoadingStats && <LoadingIndicator />}
+      />
     );
   };
 
-  const renderAlbums = () => (
-    <FlatList
-      data={artistAlbums}
-      keyExtractor={item => item.id}
-      renderItem={({ item }) => {
-        const isFullyRated = albumStats[item.id]?.rated === item.total_tracks;
-        
-        return (
-          <TouchableOpacity 
-            style={[
-              styles.albumItem,
-              isFullyRated && styles.fullyRatedAlbum
-            ]}
-            onPress={() => handleAlbumPress(item.id)}
-          >
-            <Image 
-              source={{ uri: item.images[0]?.url }} 
-              style={styles.albumImage} 
-            />
-            <View style={styles.albumInfo}>
-              <Text style={styles.albumTitle}>{item.name}</Text>
-              <Text style={styles.albumDetails}>
-                {albumStats[item.id] && (
-                  <>
-                    <Text>
-                      {albumStats[item.id].rated}/{item.total_tracks} Songs •{" "}
-                      {new Date(item.release_date).getFullYear()}
-                    </Text>
-                    <Text style={styles.ratingInfo}>
-                      {" "}• Ø {albumStats[item.id].avg.toFixed(1)}
-                    </Text>
-                  </>
-                )}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        );
-      }}
-    />
+  // Hilfsfunktionen
+  const getCurrentData = () => {
+    if (mode === 'artist') return artistAlbums;
+    if (mode === 'topTracks') return artistTracks;
+    return results;
+  };
+
+  const renderItem = ({ item }) => {
+    if (mode === 'artist') return <AlbumItem item={item} />;
+    return (
+      <SongItem
+        song={item}
+        onPress={handleTrackPress}
+        score={existingRatings.find(r => r.song_id === item.id)?.score}
+        isRated={existingRatings.some(r => r.song_id === item.id)}
+      />
+    );
+  };
+
+  const EmptyState = () => (
+    <Text style={styles.prompt}>
+      {mode === 'artist' 
+        ? "Suche nach Interpreten, um ihre Alben zu sehen"
+        : mode === 'topTracks'
+        ? "Suche nach Interpreten, um ihre Spotify Top-Tracks zu sehen"
+        : "Suche nach Songs, um sie zu bewerten"}
+    </Text>
   );
 
-  const renderTracks = () => (
-    <FlatList
-      data={results}
-      keyExtractor={item => item.id}
-      renderItem={({ item }) => (
-        <SongItem
-          song={item}
-          onPress={() => handleTrackPress(item)}
-          score={getScoreForSong(item.id)}
-          isRated={existingRatings.some(r => r.song_id === item.id)}
-        />
-      )}
-    />
-  );
-  
-  const renderTopTracks = () => (
-    <FlatList
-      data={artistTracks}
-      keyExtractor={item => item.id}
-      renderItem={({ item }) => (
-        <SongItem
-          song={validateTrack(item)}
-          onPress={() => handleTrackPress(validateTrack(item))}
-          score={getScoreForSong(item.id)}
-          isRated={existingRatings.some(r => r.song_id === item.id)}
-        />
-      )}
-    />
+  const LoadingIndicator = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="small" color="#2A9D8F" />
+      <Text style={styles.loadingText}>Lade Daten...</Text>
+    </View>
   );
 
   return (
     <View style={styles.container}>
       <View style={styles.searchHeader}>
         <TextInput
-          placeholder={
-            mode === 'artist' ? "Interpreten suchen..." :
-            mode === 'topTracks' ? "Interpreten für Top-Tracks suchen..." :
-            "Songs suchen..."
-          }
+          placeholder={modeConfig[mode].placeholder}
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={handleSearch}
           style={styles.input}
         />
-        <TouchableOpacity
-          onPress={handleModeToggle}
-          style={styles.modeButton}
-        >
-          <Ionicons 
-            name={modeConfig[mode].icon} 
-            size={28}
-            color="#2A9D8F"
-          />
+        <TouchableOpacity onPress={() => setMode(prev => modeConfig[prev].next)} style={styles.modeButton}>
+          <Ionicons name={modeConfig[mode].icon} size={28} color="#2A9D8F" />
         </TouchableOpacity>
       </View>
-
       {renderContent()}
     </View>
   );
@@ -349,6 +295,8 @@ const styles = StyleSheet.create({
   albumDetails: {
     color: '#666',
     fontSize: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   error: {
     color: '#E76F51',
@@ -368,12 +316,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FAF9',
     marginLeft: 10,
   },
-  albumDetails: {
-    color: '#666',
-    fontSize: 14,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
   ratingInfo: {
     color: '#2A9D8F',
     fontWeight: '500',
@@ -382,6 +324,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FAF9',
     borderWidth: 2,
     borderColor: '#2A9D8F40',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  loadingText: {
+    marginLeft: 10,
+    color: '#2A9D8F',
   },
 });
 

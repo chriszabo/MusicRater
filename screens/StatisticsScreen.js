@@ -93,8 +93,12 @@ const StatisticsScreen = () => {
             value={overallStats?.totalSongs || 0}
           />
           <StatItem 
-            label="Perfekte 10" 
+            label="10er Songs" 
             value={overallStats?.perfectRatings || 0}
+          />
+          <StatItem 
+            label="Komplette Alben" 
+            value={overallStats?.completedAlbums.length || 0}
           />
           <StatItem 
             label="Ø-Score" 
@@ -114,6 +118,14 @@ const StatisticsScreen = () => {
           data={overallStats?.topAlbums}
           renderItem={(item) => `${item.album} (${item.avgRating.toFixed(1)})`}
         />
+        {overallStats?.profileData?.show_incomplete_albums !== 0 && (
+          <TopList 
+            title="Unvollständige Alben"
+            data={overallStats?.incompleteAlbums}
+            renderItem={(item) => `${item.album} (${item.artist})`}
+          />
+        )}
+
       </View>
 
       <TextInput
