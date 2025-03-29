@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, Alert } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Text, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { getAllRatings, addSong, addRating, resetDatabase, getAllAchievements, initDatabase, printSongTable, migrateAlbumInfo } from '../database';
 import { COLORS } from '../config/colors';
+import { Ionicons } from '@expo/vector-icons';
 
 const ProfileScreen = () => {
   const [profileName, setProfileName] = useState('');
   const [currentProfile, setCurrentProfile] = useState('');
+  const [topArtistsLimit, setTopArtistsLimit] = useState('');
+  const [topAlbumsLimit, setTopAlbumsLimit] = useState('');
 
   useEffect(() => {
     loadProfile();
@@ -17,7 +20,28 @@ const ProfileScreen = () => {
 
   const loadProfile = async () => {
     const name = await AsyncStorage.getItem('currentProfile');
-    if (name) setCurrentProfile(name);
+    if (name) {
+      setCurrentProfile(name);
+      const db = await initDatabase();
+      const profileData = await db.getFirstAsync(
+        'SELECT top_artists_limit, top_albums_limit FROM profiledata WHERE profile_name = ?',
+        [name]
+      );
+      setTopArtistsLimit(profileData?.top_artists_limit?.toString() || '5');
+      setTopAlbumsLimit(profileData?.top_albums_limit?.toString() || '10');
+    }
+  };
+
+  const updateLimits = async () => {
+    const db = await initDatabase();
+    await db.runAsync(
+      `UPDATE profiledata SET
+        top_artists_limit = ?,
+        top_albums_limit = ?
+      WHERE profile_name = ?`,
+      [parseInt(topArtistsLimit) || 5, parseInt(topAlbumsLimit) || 10, currentProfile]
+    );
+    Alert.alert("Erfolg", "Einstellungen gespeichert!");
   };
 
   const saveProfile = async () => {
@@ -185,51 +209,177 @@ const ProfileScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.currentProfile}>Aktuelles Profil: {currentProfile || "None"}</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Profil setzen"
-        value={profileName}
-        onChangeText={setProfileName}
-      />
-      <View style={styles.button}>
-      <Button title="Profil bestätigen" onPress={saveProfile} color="#1EB1FC" />
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.scrollContainer}
+    >
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>Profilverwaltung</Text>
+        
+        <Text style={styles.currentProfile}>
+          <Ionicons name="person" size={18} color={COLORS.primary} /> 
+          {' '}Aktuelles Profil: {currentProfile || "Kein Profil ausgewählt"}
+        </Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Profil setzen..."
+          placeholderTextColor={COLORS.text + '90'}
+          value={profileName}
+          onChangeText={setProfileName}
+        />
+        <TouchableOpacity
+          style={[styles.button, , styles.primaryButton]}
+          onPress={saveProfile}
+        >
+          <Text style={[styles.buttonText, styles.primaryButtonText]}>Profil setzen</Text>
+        </TouchableOpacity>
       </View>
-      <View style={styles.button}>
-      <Button title="Profil-Ratings exportieren" onPress={handleExport} color="#2A9D8F" />
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>Daten Export/Import</Text>
+        
+        <TouchableOpacity
+          style={[styles.button, styles.primaryButton]}
+          onPress={handleExport}
+        >
+          <Ionicons name="download" size={20} color="white" />
+          <Text style={[styles.buttonText, styles.primaryButtonText]}>Exportieren</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.primaryButton]}
+          onPress={handleImport}
+        >
+          <Ionicons name="cloud-upload" size={20} color="white" />
+          <Text style={[styles.buttonText, styles.primaryButtonText]}>Importieren</Text>
+        </TouchableOpacity>
       </View>
-      <View style={styles.button}>
-      <Button title="Profil-Ratings importieren" onPress={handleImport} color="#2A9D8F" />
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>Statistik-Einstellungen</Text>
+        
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Top Interpreten Limit</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="5"
+            value={topArtistsLimit}
+            onChangeText={setTopArtistsLimit}
+            keyboardType="numeric"
+          />
+        </View>
+
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Top Alben Limit</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="10"
+            value={topAlbumsLimit}
+            onChangeText={setTopAlbumsLimit}
+            keyboardType="numeric"
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.button, styles.primaryButton]}
+          onPress={updateLimits}
+        >
+          <Text style={[styles.buttonText, styles.primaryButtonText]}>Einstellungen speichern</Text>
+        </TouchableOpacity>
       </View>
-      <View style={styles.button}>
-      <Button title="Datenbank löschen" onPress={handleDelete} color={COLORS.error} />
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>Gefahrenzone</Text>
+        <TouchableOpacity
+          style={[styles.button, styles.dangerButton]}
+          onPress={handleDelete}
+        >
+          <Ionicons name="warning" size={20} color="white" />
+          <Text style={[styles.buttonText, styles.dangerButtonText]}>Datenbank löschen</Text>
+        </TouchableOpacity>
       </View>
-      <Button title="Print Song Table" onPress={printSongTable}/>
-      <Button title="Migrate Album Info" onPress={migrateAlbumInfo}/>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollContainer: {
+    padding: 20,
+  },
+  section: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  sectionHeader: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 15,
   },
   currentProfile: {
-    fontSize: 18,
+    fontSize: 16,
+    color: COLORS.text,
     marginBottom: 20,
-    fontWeight: '600',
-    color: '#2A9D8F',
+    backgroundColor: COLORS.background,
+    padding: 12,
+    borderRadius: 8,
+  },
+  input: {
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 16,
+    color: COLORS.text,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   button: {
+    borderRadius: 10,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
     marginBottom: 10,
-  }
+  },
+  primaryButton: {
+    backgroundColor: COLORS.primary,
+  },
+  dangerButton: {
+    backgroundColor: COLORS.error,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  primaryButtonText: {
+    color: 'white',
+  },
+  dangerButtonText: {
+    color: 'white',
+  },
+  settingItem: {
+    marginBottom: 15,
+  },
+  settingLabel: {
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 5,
+    fontWeight: '500',
+  },
 });
 
 export default ProfileScreen;

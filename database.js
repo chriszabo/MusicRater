@@ -51,7 +51,9 @@ export const initDatabase = async () => {
         artist_statistics_opened INTEGER,
         top_tracks_opened INTEGER,
         songs_searched INTEGER,
-        artist_mode_opened INTEGER
+        artist_mode_opened INTEGER,
+        top_artists_limit INTEGER DEFAULT 5,
+        top_albums_limit INTEGER DEFAULT 10
     );
     `);
     await db.execAsync(`
@@ -266,7 +268,12 @@ export const deleteRating = async (songId) => {
     WHERE profile_name = $profile
   `, { $profile: profileName });
   
-    // Top 5 Artists
+    const profileData = await database.getFirstAsync(
+      'SELECT top_artists_limit, top_albums_limit FROM profiledata WHERE profile_name = ?',
+      [profileName]
+    );
+
+    // Top Artists mit Limit
     const topArtists = await database.getAllAsync(`
       SELECT 
         artist,
@@ -277,10 +284,10 @@ export const deleteRating = async (songId) => {
       WHERE profile_name = $profile
       GROUP BY artist
       ORDER BY avgRating DESC
-      LIMIT 5
+      LIMIT ${profileData?.top_artists_limit || 5}
     `, { $profile: profileName });
-  
-    // Top 10 Alben
+
+    // Top Alben mit Limit
     const topAlbums = await database.getAllAsync(`
       SELECT 
         album,
@@ -291,7 +298,7 @@ export const deleteRating = async (songId) => {
       WHERE profile_name = $profile
       GROUP BY album
       ORDER BY avgRating DESC
-      LIMIT 10
+      LIMIT ${profileData?.top_albums_limit || 10}
     `, { $profile: profileName });
   
     return {
@@ -425,7 +432,7 @@ export const deleteRating = async (songId) => {
           artist_statistics_opened: 0,
           top_tracks_opened: 0,
           songs_searched: 0,
-          artist_mode_opened: 0
+          artist_mode_opened: 0,
         };
         initialValues[columnName] = 1;
   

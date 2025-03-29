@@ -104,13 +104,13 @@ const StatisticsScreen = () => {
         </View>
 
         <TopList 
-          title="Top 5 Interpreten"
+          title={`Top ${overallStats?.topArtists.length} Interpreten`}
           data={overallStats?.topArtists}
           renderItem={(item) => `${item.artist} (${item.avgRating.toFixed(1)})`}
         />
 
         <TopList 
-          title="Top 10 Alben"
+          title={`Top ${overallStats?.topAlbums.length} Alben`}
           data={overallStats?.topAlbums}
           renderItem={(item) => `${item.album} (${item.avgRating.toFixed(1)})`}
         />
