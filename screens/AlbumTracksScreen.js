@@ -26,6 +26,8 @@ const AlbumTracksScreen = ({ route, navigation }) => {
           album: album.name,
           duration: track.duration_ms,
           image: album.images[0]?.url,
+          album_id: album.id,
+          album_tracks: album.total_tracks,
         }));
         
         setTracks(formattedTracks);

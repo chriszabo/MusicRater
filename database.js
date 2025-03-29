@@ -1,6 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ACHIEVEMENT_DEFINITIONS } from './achievements';
+import { searchAlbums } from './spotify';
 
 let db = null;
 
@@ -17,6 +18,8 @@ export const initDatabase = async () => {
         title TEXT,
         artist TEXT,
         album TEXT,
+        album_id TEXT,
+        album_tracks INTEGER,
         duration INTEGER,
         image_url TEXT
       );
@@ -76,9 +79,9 @@ export const addSong = async (song) => {
     console.log("Add Song to db: ", song)
     await database.runAsync(
       `INSERT OR REPLACE INTO songs 
-      (id, title, artist, album, duration, image_url) 
-      VALUES (?, ?, ?, ?, ?, ?)`,
-      [song.id, song.title, song.artist, song.album, song.duration, song.image]
+      (id, title, artist, album, duration, image_url, album_id, album_tracks) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [song.id, song.title, song.artist, song.album, song.duration, song.image, song.album_id, song.album_tracks]
     );
   };
 
@@ -128,7 +131,9 @@ export const addRating = async (songId, score, notes) => {
              songs.title,
              songs.artist,
              songs.album,
-             songs.image_url AS image
+             songs.image_url AS image,
+             songs.album_id,
+             songs.album_tracks
       FROM ratings 
       JOIN songs ON ratings.song_id = songs.id
     `;
@@ -541,4 +546,101 @@ export const deleteRating = async (songId) => {
     const toReturn = result[0]?.score || 0
     console.log("ToReturn", toReturn)
     return toReturn
+  };
+
+  export const migrateAlbumInfo = async () => {
+    const database = await initDatabase();
+    
+    // Hole alle Songs, die noch keine Album-ID oder Trackanzahl haben
+    const songs = await database.getAllAsync(
+      'SELECT id, album FROM songs WHERE album_id IS NULL OR album_tracks IS NULL'
+    );
+    console.log("Empty album_id/album_tracks songs", songs);
+    // Gruppiere Songs nach Albumnamen
+    const albumsMap = {};
+    songs.forEach(song => {
+      const albumName = song.album;
+      console.log("hi", albumName)
+      if (!albumName) return; // Ignoriere leere Albumnamen
+      if (song.id.startsWith("custom-")) return;
+      if (!albumsMap[albumName]) albumsMap[albumName] = [];
+      albumsMap[albumName].push(song.id);
+    });
+    console.log("Album map", albumsMap)
+    // Verarbeite jedes Album
+    for (const [albumName, songIds] of Object.entries(albumsMap)) {
+      try {
+        // Suche exaktes Album bei Spotify
+        const albumData = await searchAlbums(`album:"${albumName}"`);
+        
+        // Validiere Ergebnis
+        if (!albumData || albumData.name.toLowerCase() !== albumName.toLowerCase()) {
+          console.log(`Album "${albumName}" nicht gefunden oder Name ungenau`);
+          continue;
+        }
+  
+        // Extrahiere benötigte Daten
+        const albumId = albumData.id;
+        const albumTracks = albumData.total_tracks;
+  
+        // Update Songs in der Datenbank
+        await database.runAsync(
+          `UPDATE songs 
+           SET album_id = ?, album_tracks = ? 
+           WHERE id IN (${songIds.map(() => '?').join(',')})`,
+          [albumId, albumTracks, ...songIds]
+        );
+  
+        console.log(`Aktualisiert: ${songIds.length} Songs für Album "${albumName}"`);
+        
+        // Rate-Limit vermeiden (Spotify: ~300 Anfragen/Minute)
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (error) {
+        console.error(`Fehler bei Album "${albumName}":`, error.message);
+      }
+    }
+  };
+
+  export const printSongTable = async () => {
+    const database = await initDatabase();
+    try {
+      const songs = await database.getAllAsync(`
+        SELECT id, title, artist, album, album_id, album_tracks, duration 
+        FROM songs
+        ORDER BY artist, album, title
+      `);
+      
+      console.log('\nSong Table Contents:');
+      console.log("Songs", songs)
+      console.table(songs.map(song => ({
+        ID: song.id,
+        Title: song.title,
+        Artist: song.artist,
+        Album: song.album,
+        Spotify_ID: song.album_id || 'NULL',
+        Tracks: song.album_tracks || 'NULL',
+        Duration: `${Math.floor(song.duration/60000)}:${Math.floor((song.duration%60000)/1000).toString().padStart(2, '0')}`
+      })));
+    } catch (error) {
+      console.error('Error printing song table:', error);
+    }
+  };
+
+  export const getAlbumStatsById = async (albumId) => {
+    const database = await initDatabase();
+    const profile = await AsyncStorage.getItem('currentProfile');
+    if (!profile) throw new Error('No profile selected');
+  
+    return await database.getFirstAsync(`
+      SELECT 
+        COALESCE(AVG(score), 0) as avgScore,
+        COUNT(*) as ratedSongs
+      FROM ratings
+      JOIN songs ON ratings.song_id = songs.id
+      WHERE profile_name = $profile
+      AND songs.album_id = $albumId
+    `, { 
+      $profile: profile,
+      $albumId: albumId 
+    });
   };

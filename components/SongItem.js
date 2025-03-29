@@ -14,7 +14,7 @@ const COLORS = {
     return (
       <TouchableOpacity 
         onPress={onPress} 
-        style={[styles.container, { backgroundColor: isRated ? '#F0FAF9' : 'white' }]}
+        style={[styles.container, isRated && styles.rated]}
       >
         <Image source={{ uri: song.image }} style={styles.image} />
         <View style={styles.details}>
@@ -89,6 +89,11 @@ const COLORS = {
       fontSize: 12,
       fontWeight: 'bold',
     },
+    rated: {
+      backgroundColor: '#F0FAF9',
+      borderWidth: 2,
+      borderColor: '#2A9D8F40',
+    }
   });
 
 export default SongItem;

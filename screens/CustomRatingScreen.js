@@ -42,6 +42,8 @@ const CustomRatingScreen = () => {
         title,
         artist,
         album,
+        album_id: album,
+        album_tracks: 0,
         duration: 0,
         image: "local:dog_icon.jpeg"
       });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, TextInput, Button, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image } from 'react-native';
 import { searchSpotify, searchArtists, getAlbum, getArtistAlbums, getArtistTopTracks } from '../spotify';
-import { addSong, getExistingRating, incrementProfileData, getAllRatings } from '../database';
+import { addSong, getExistingRating, incrementProfileData, getAllRatings, getAlbumStatsById } from '../database';
 import SongItem from '../components/SongItem';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -39,13 +39,37 @@ const SearchScreen = ({ navigation }) => {
   const [error, setError] = useState('');
   const [mode, setMode] = useState('track'); // 'track', 'artist' oder 'topTracks'
   const [existingRatings, setExistingRatings] = useState([]);
+  const [albumStats, setAlbumStats] = useState({});
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', loadExistingRatings);
-    loadExistingRatings();
+    const unsubscribe = navigation.addListener('focus', loadStuff);
+    loadStuff();
     return unsubscribe;
   }, [navigation]);
 
+  const loadStuff = async () => {
+    loadExistingRatings();
+    if (artistAlbums.length > 0) loadAlbumStats();
+
+  }
+
+  const loadAlbumStats = async () => {
+    const stats = {};
+    for (const album of artistAlbums) {
+      try {
+        const data = await getAlbumStatsById(album.id);
+        stats[album.id] = {
+          avg: data?.avgScore || 0,
+          rated: data?.ratedSongs || 0,
+          total: album.total_tracks
+        };
+      } catch (e) {
+        stats[album.id] = { avg: 0, rated: 0, total: album.total_tracks };
+      }
+    }
+    setAlbumStats(stats);
+  };
+  
   const modeTitles = {
     track: 'Zur Interpreten-Suche',
     artist: 'Zur Top-Tracks-Suche',
@@ -130,6 +154,8 @@ const SearchScreen = ({ navigation }) => {
     album: track.album?.name || 'Unbekanntes Album',
     duration: track.duration_ms || 0,
     image: track.album?.images?.[0]?.url || '',
+    album_id: track.album?.id || '',
+    album_tracks: track.album?.total_tracks || 0,
   });
 
   const handleAlbumPress = (albumId) => {
@@ -177,23 +203,40 @@ const SearchScreen = ({ navigation }) => {
     <FlatList
       data={artistAlbums}
       keyExtractor={item => item.id}
-      renderItem={({ item }) => (
-        <TouchableOpacity 
-          style={styles.albumItem}
-          onPress={() => handleAlbumPress(item.id)}
-        >
-          <Image 
-            source={{ uri: item.images[0]?.url }} 
-            style={styles.albumImage} 
-          />
-          <View style={styles.albumInfo}>
-            <Text style={styles.albumTitle}>{item.name}</Text>
-            <Text style={styles.albumDetails}>
-              {item.total_tracks} Songs • {new Date(item.release_date).getFullYear()}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      )}
+      renderItem={({ item }) => {
+        const isFullyRated = albumStats[item.id]?.rated === item.total_tracks;
+        
+        return (
+          <TouchableOpacity 
+            style={[
+              styles.albumItem,
+              isFullyRated && styles.fullyRatedAlbum
+            ]}
+            onPress={() => handleAlbumPress(item.id)}
+          >
+            <Image 
+              source={{ uri: item.images[0]?.url }} 
+              style={styles.albumImage} 
+            />
+            <View style={styles.albumInfo}>
+              <Text style={styles.albumTitle}>{item.name}</Text>
+              <Text style={styles.albumDetails}>
+                {albumStats[item.id] && (
+                  <>
+                    <Text>
+                      {albumStats[item.id].rated}/{item.total_tracks} Songs •{" "}
+                      {new Date(item.release_date).getFullYear()}
+                    </Text>
+                    <Text style={styles.ratingInfo}>
+                      {" "}• Ø {albumStats[item.id].avg.toFixed(1)}
+                    </Text>
+                  </>
+                )}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        );
+      }}
     />
   );
 
@@ -324,6 +367,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#F0FAF9',
     marginLeft: 10,
+  },
+  albumDetails: {
+    color: '#666',
+    fontSize: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  ratingInfo: {
+    color: '#2A9D8F',
+    fontWeight: '500',
+  },
+  fullyRatedAlbum: {
+    backgroundColor: '#F0FAF9',
+    borderWidth: 2,
+    borderColor: '#2A9D8F40',
   },
 });
 

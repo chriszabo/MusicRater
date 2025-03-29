@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import { getAllRatings, addSong, addRating, resetDatabase, getAllAchievements, initDatabase } from '../database';
+import { getAllRatings, addSong, addRating, resetDatabase, getAllAchievements, initDatabase, printSongTable, migrateAlbumInfo } from '../database';
 import { COLORS } from '../config/colors';
 
 const ProfileScreen = () => {
@@ -62,6 +62,8 @@ const ProfileScreen = () => {
           album: r.album,
           duration: r.duration,
           image_url: r.image,
+          album_id: r.album_id,
+          album_tracks: r.album_tracks,
         });
       });
 
@@ -204,6 +206,8 @@ const ProfileScreen = () => {
       <View style={styles.button}>
       <Button title="Datenbank löschen" onPress={handleDelete} color={COLORS.error} />
       </View>
+      <Button title="Print Song Table" onPress={printSongTable}/>
+      <Button title="Migrate Album Info" onPress={migrateAlbumInfo}/>
     </View>
   );
 };
