@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, TextInput, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image } from 'react-native';
 import { searchSpotify, searchArtists, getArtistAlbums, getArtistTopTracks } from '../spotify';
-import { addSong, getExistingRating, incrementProfileData, getAllRatings, getAlbumStatsById } from '../database';
+import { addSong, getExistingRating, incrementProfileData, getAllRatings, getAlbumStatsById, addToWatchlist, removeFromWatchlist, getWatchlistItems } from '../database';
 import SongItem from '../components/SongItem';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { COLORS } from '../config/colors';
 
 const modeConfig = {
   track: {
@@ -36,6 +37,7 @@ const SearchScreen = ({ navigation }) => {
   const [existingRatings, setExistingRatings] = useState([]);
   const [albumStats, setAlbumStats] = useState({});
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [watchlistItems, setWatchlistItems] = useState([]);
 
   // Daten laden bei Fokus und Änderungen
   useFocusEffect(
@@ -45,8 +47,33 @@ const SearchScreen = ({ navigation }) => {
         if (artistAlbums.length > 0) await loadAlbumStats();
       };
       loadData();
-    }, [artistAlbums])
+    }, [artistAlbums, watchlistItems])
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadWatchlist = async () => {
+        const items = await getWatchlistItems();
+        setWatchlistItems(items);
+      };
+      loadWatchlist();
+    }, [])
+  );
+
+  const handleWatchlistToggle = async (item, type) => {
+    try {
+      if (watchlistItems.some(w => w.id === item.id)) {
+        await removeFromWatchlist(item.id);
+      } else {
+        await addToWatchlist(item, type);
+      }
+      // Direkte State-Aktualisierung
+      const updatedItems = await getWatchlistItems();
+      setWatchlistItems(updatedItems);
+    } catch (error) {
+      console.error("Watchlist error:", error);
+    }
+  };
 
   const validateTrack = (track) => ({
     id: track.id || '',
@@ -157,11 +184,12 @@ const SearchScreen = ({ navigation }) => {
   const AlbumItem = useCallback(({ item }) => {
     const stats = albumStats[item.id];
     const isFullyRated = stats?.rated === item.total_tracks;
+    const isInWatchlist = watchlistItems.some(w => w.id === item.id && w.type === 'album');
 
     return (
       <TouchableOpacity 
         style={[styles.albumItem, isFullyRated && styles.fullyRatedAlbum]}
-        onPress={() => navigation.navigate('AlbumTracks', { albumId: item.id })}
+        onPress={() => navigation.navigate('AlbumTracks', { albumId: item.id, handleWatchlistToggle: handleWatchlistToggle})}
       >
         <Image source={{ uri: item.images[0]?.url }} style={styles.albumImage} />
         <View style={styles.albumInfo}>
@@ -173,6 +201,16 @@ const SearchScreen = ({ navigation }) => {
             </Text>
           )}
         </View>
+        <TouchableOpacity 
+        onPress={() => handleWatchlistToggle(item, 'album')}
+        style={styles.watchlistButton}
+      >
+        <Ionicons 
+          name={isInWatchlist ? 'bookmark' : 'bookmark-outline'} 
+          size={24} 
+          color={isInWatchlist ? COLORS.primary : '#666'} 
+        />
+      </TouchableOpacity>
       </TouchableOpacity>
     );
   }, [albumStats]);
@@ -204,9 +242,11 @@ const SearchScreen = ({ navigation }) => {
     return (
       <SongItem
         song={item}
-        onPress={handleTrackPress}
+        onPress={() => handleTrackPress(item)}
         score={existingRatings.find(r => r.song_id === item.id)?.score}
         isRated={existingRatings.some(r => r.song_id === item.id)}
+        onWatchlistToggle={() => handleWatchlistToggle(item, 'track')}
+        isInWatchlist={watchlistItems.some(w => w.id === item.id && w.type === 'track')}
       />
     );
   };

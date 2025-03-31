@@ -68,6 +68,31 @@ export const initDatabase = async () => {
         FOREIGN KEY (profile_name) REFERENCES profiledata(profile_name)
       );
     `);
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS watchlist (
+        id TEXT NOT NULL,
+        type TEXT CHECK(type IN ('album', 'track')) NOT NULL,
+        profile_name TEXT NOT NULL,
+        PRIMARY KEY (id, profile_name)
+      );
+    `);
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS albums (
+        id TEXT PRIMARY KEY,
+        title TEXT,
+        artist TEXT,
+        image_url TEXT,
+        total_tracks INTEGER,
+        release_date TEXT
+      );
+    `);
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS global_watchlist_notes (
+        profile_name TEXT PRIMARY KEY,
+        notes TEXT,
+        FOREIGN KEY (profile_name) REFERENCES profiledata(profile_name)
+      );
+    `);
   }
   return db;
 } catch (error)
@@ -694,4 +719,105 @@ export const deleteRating = async (songId) => {
       $profile: profile,
       $albumId: albumId 
     });
+  };
+
+  export const addToWatchlist = async (item, type) => {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    console.log("Add to watchlist", type, item)
+  
+    await database.execAsync('BEGIN TRANSACTION');
+    
+    try {
+      if (type === 'track') {
+        await database.runAsync(
+          `INSERT OR REPLACE INTO songs 
+          (id, title, artist, album, duration, image_url, album_id, album_tracks) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [item.id, item.title, item.artist, item.album, item.duration, item.image, item.album_id, item.album_tracks]
+        );
+      } else if (type === 'album') {
+        // Album in die albums-Tabelle einfügen
+        await database.runAsync(
+          `INSERT OR REPLACE INTO albums 
+          (id, title, artist, image_url, total_tracks, release_date) 
+          VALUES (?, ?, ?, ?, ?, ?)`,
+          [item.id, item.name, item.artists[0]?.name, item.images[0]?.url, item.total_tracks, item.release_date]
+        );
+      }
+  
+      // Zur Watchlist hinzufügen
+      await database.runAsync(
+        `INSERT OR REPLACE INTO watchlist 
+        (id, type, profile_name) 
+        VALUES (?, ?, ?)`,
+        [item.id, type, profileName]
+      );
+  
+      await database.execAsync('COMMIT');
+    } catch (error) {
+      await database.execAsync('ROLLBACK');
+      throw error;
+    }
+  };
+  
+  export const removeFromWatchlist = async (itemId) => {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    console.log("Remove from watchlist", itemId)
+
+    await database.runAsync(
+      'DELETE FROM watchlist WHERE id = ? AND profile_name = ?',
+      [itemId, profileName]
+    );
+  };
+  
+  export const getWatchlistItems = async () => {
+    try {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    const watchlistItems = await database.getAllAsync(`
+      SELECT 
+        w.id,
+        w.type,
+        COALESCE(s.title, a.title) as title,
+        COALESCE(s.artist, a.artist) as artist,
+        COALESCE(s.image_url, a.image_url) as image,
+        s.album,
+        s.album_tracks,
+        s.album_id,
+        s.duration,
+        a.total_tracks
+      FROM watchlist w
+      LEFT JOIN songs s ON w.id = s.id AND w.type = 'track'
+      LEFT JOIN albums a ON w.id = a.id AND w.type = 'album'
+      WHERE w.profile_name = ?
+    `, [profileName]);
+    
+    console.log("Watchlistitems")
+    console.log(watchlistItems)
+    return watchlistItems
+  } catch (error) {
+    console.error(error)
+  }
+  };
+
+  export const saveGlobalWatchlistNote = async (notes) => {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    await database.runAsync(
+      `INSERT OR REPLACE INTO global_watchlist_notes (profile_name, notes)
+       VALUES (?, ?)`,
+      [profileName, notes]
+    );
+  };
+  
+  export const getGlobalWatchlistNote = async () => {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    const result = await database.getFirstAsync(
+      'SELECT notes FROM global_watchlist_notes WHERE profile_name = ?',
+      [profileName]
+    );
+    return result?.notes || '';
   };

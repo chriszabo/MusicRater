@@ -17,6 +17,7 @@ import StatisticsScreen from './screens/StatisticsScreen';
 import AlbumTracksScreen from './screens/AlbumTracksScreen';
 import CustomRatingScreen from './screens/CustomRatingScreen';
 import AchievementScreen from './screens/AchievementScreen';
+import WatchlistScreen from './screens/WatchlistScreen';
 import GameScreen from './screens/GameScreen';
 import { COLORS } from './config/colors';
 
@@ -25,6 +26,7 @@ SplashScreen.preventAutoHideAsync();
 const Tab = createBottomTabNavigator();
 const SearchStack = createStackNavigator();
 const RatingsStack = createStackNavigator();
+const WatchlistStack = createStackNavigator();
 
 const SearchStackScreen = () => (
   <SearchStack.Navigator 
@@ -39,7 +41,22 @@ const SearchStackScreen = () => (
     <SearchStack.Screen name="SearchMain" component={SearchScreen} />
     <SearchStack.Screen name="AlbumTracks" component={AlbumTracksScreen} />
     <SearchStack.Screen name="Rate" component={RateScreen} />
+    <SearchStack.Screen name="Watchlist" component={WatchlistScreen} />
   </SearchStack.Navigator>
+);
+
+const WatchlistStackScreen = () => (
+  <WatchlistStack.Navigator 
+    screenOptions={{ 
+      headerShown: false,
+      gestureEnabled: true,
+      animation: 'slide_from_right',
+    }}
+  >
+    <WatchlistStack.Screen name="WatchlistMain" component={WatchlistScreen} />
+    <WatchlistStack.Screen name="Rate" component={RateScreen} />
+    <WatchlistStack.Screen name="AlbumTracks" component={AlbumTracksScreen} />
+  </WatchlistStack.Navigator>
 );
 
 const RatingsStackScreen = () => (
@@ -117,6 +134,16 @@ function App() {
                 }} 
               />
               <Tab.Screen name="Ratings" component={RatingsStackScreen} options={{ title: 'Ratings' }} />
+              <Tab.Screen 
+                name="Watchlist" 
+                component={WatchlistStackScreen} 
+                options={{ 
+                  title: 'Merkliste',
+                  tabBarIcon: ({ color, size }) => (
+                    <Ionicons name="bookmark" size={size} color={color} />
+                  )
+                }}
+              />
               <Tab.Screen 
                   name="Statistics" 
                   component={StatisticsScreen} 

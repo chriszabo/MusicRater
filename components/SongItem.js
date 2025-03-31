@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const COLORS = {
     primary: '#2A9D8F',  // Sanftes Türkis
@@ -10,10 +11,13 @@ const COLORS = {
     error: '#E76F51',    // Warmes Korallenrot
   };
   
-  const SongItem = ({ song, onPress, score, isRated }) => {
+  const SongItem = ({ song, onPress, score, isRated, isInWatchlist, onWatchlistToggle }) => {
     return (
       <TouchableOpacity 
-        onPress={onPress} 
+        onPress={(e) => {
+          e.persist();
+          onPress();
+        }}
         style={[styles.container, isRated && styles.rated]}
       >
         <Image source={{ uri: song.image }} style={styles.image} />
@@ -27,6 +31,13 @@ const COLORS = {
             <Text style={styles.scoreText}>{score}</Text>
           </View>
         )}
+        <TouchableOpacity onPress={onWatchlistToggle}>
+      <Ionicons 
+        name={isInWatchlist ? 'bookmark' : 'bookmark-outline'} 
+        size={24} 
+        color={isInWatchlist ? '#2A9D8F' : '#666'} 
+      />
+    </TouchableOpacity>
       </TouchableOpacity>
     );
   };

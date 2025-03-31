@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import { getAlbum } from '../spotify';
 import SongItem from '../components/SongItem';
-import { addSong, getAllRatings, getExistingRating } from '../database';
+import { addSong, getAllRatings, getExistingRating, addToWatchlist, removeFromWatchlist, getWatchlistItems } from '../database';
+import { useFocusEffect } from '@react-navigation/native';
 
 const AlbumTracksScreen = ({ route, navigation }) => {
   const [tracks, setTracks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [albumInfo, setAlbumInfo] = useState(null);
   const [existingRatings, setExistingRatings] = useState([]);
+  const [existingWatchlistItems, setExistingWatchlistItems] = useState([]);
 
   useEffect(() => {
     const loadAlbum = async () => {
@@ -40,6 +42,31 @@ const AlbumTracksScreen = ({ route, navigation }) => {
 
     loadAlbum();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadWatchlist = async () => {
+        const items = await getWatchlistItems();
+        setExistingWatchlistItems(items);
+      };
+      loadWatchlist();
+    }, [])
+  );
+
+  const handleWatchlistToggle = async (item, type) => {
+      try {
+        if (existingWatchlistItems.some(w => w.id === item.id)) {
+          await removeFromWatchlist(item.id);
+        } else {
+          await addToWatchlist(item, type);
+        }
+        // Direkte State-Aktualisierung
+        const updatedItems = await getWatchlistItems();
+        setExistingWatchlistItems(updatedItems);
+      } catch (error) {
+        console.error("Watchlist error:", error);
+      }
+    };
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', async () => {
@@ -82,6 +109,8 @@ const AlbumTracksScreen = ({ route, navigation }) => {
               onPress={() => handleTrackPress(item)}
               score={getScoreForSong(item.id)}
               isRated={existingRatings.some(r => r.song_id === item.id)}
+              onWatchlistToggle={() => handleWatchlistToggle(item, 'track')}
+              isInWatchlist={existingWatchlistItems.some(w => w.id === item.id && w.type === 'track')}
             />
           )}
         />
