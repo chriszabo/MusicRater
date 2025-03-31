@@ -592,55 +592,65 @@ export const deleteRating = async (songId) => {
   export const migrateAlbumInfo = async () => {
     const database = await initDatabase();
     
-    // Hole alle Songs, die noch keine Album-ID oder Trackanzahl haben
+    // Hole alle Songs mit Artist-Information
     const songs = await database.getAllAsync(
-      'SELECT id, album FROM songs WHERE album_id IS NULL OR album_tracks IS NULL'
+      'SELECT id, album, artist FROM songs WHERE album_id IS NULL OR album_tracks IS NULL'
     );
-    console.log("Empty album_id/album_tracks songs", songs);
-    // Gruppiere Songs nach Albumnamen
+    console.log("Songs mit fehlender album_id", songs)
+    // Gruppiere nach Artist -> Album
     const albumsMap = {};
     songs.forEach(song => {
+      const artist = song.artist;
       const albumName = song.album;
-      console.log("hi", albumName)
-      if (!albumName) return; // Ignoriere leere Albumnamen
+      
       if (song.id.startsWith("custom-")) return;
-      if (!albumsMap[albumName]) albumsMap[albumName] = [];
-      albumsMap[albumName].push(song.id);
+
+      if (!albumsMap[artist]) {
+        albumsMap[artist] = {};
+      }
+      
+      if (!albumsMap[artist][albumName]) {
+        albumsMap[artist][albumName] = [];
+      }
+      
+      albumsMap[artist][albumName].push(song.id);
     });
-    console.log("Album map", albumsMap)
-    // Verarbeite jedes Album
-    for (const [albumName, songIds] of Object.entries(albumsMap)) {
-      try {
-        // Suche exaktes Album bei Spotify
-        const albumData = await searchAlbums(`album:"${albumName}"`);
-        
-        // Validiere Ergebnis
-        if (!albumData || albumData.name.toLowerCase() !== albumName.toLowerCase()) {
-          console.log(`Album "${albumName}" nicht gefunden oder Name ungenau`);
-          continue;
+    
+    // Verarbeite jedes Artist/Album-Paar
+    for (const [artist, artistAlbums] of Object.entries(albumsMap)) {
+      for (const [albumName, songIds] of Object.entries(artistAlbums)) {
+        try {
+          // Verbesserte Suche mit Artist und Album
+          const query = `artist:${artist} album:${albumName}`;
+          const albumData = await searchAlbums(query);
+          
+          // Validiere Match
+          const isExactMatch = albumData && 
+            albumData.name.toLowerCase() === albumName.toLowerCase() &&
+            albumData.artists.some(a => a.name.toLowerCase() === artist.toLowerCase());
+
+          if (!isExactMatch) {
+            console.log(`Kein exaktes Match für ${artist} - ${albumName}`);
+            continue;
+          }
+
+          // Update Datenbank
+          await database.runAsync(
+            `UPDATE songs 
+             SET album_id = ?, album_tracks = ? 
+             WHERE id IN (${songIds.map(() => '?').join(',')})`,
+            [albumData.id, albumData.total_tracks, ...songIds]
+          );
+
+          console.log(`Updated: ${songIds.length} songs for ${artist} - ${albumName}`);
+          
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } catch (error) {
+          console.error(`Fehler bei ${artist} - ${albumName}:`, error.message);
         }
-  
-        // Extrahiere benötigte Daten
-        const albumId = albumData.id;
-        const albumTracks = albumData.total_tracks;
-  
-        // Update Songs in der Datenbank
-        await database.runAsync(
-          `UPDATE songs 
-           SET album_id = ?, album_tracks = ? 
-           WHERE id IN (${songIds.map(() => '?').join(',')})`,
-          [albumId, albumTracks, ...songIds]
-        );
-  
-        console.log(`Aktualisiert: ${songIds.length} Songs für Album "${albumName}"`);
-        
-        // Rate-Limit vermeiden (Spotify: ~300 Anfragen/Minute)
-        await new Promise(resolve => setTimeout(resolve, 200));
-      } catch (error) {
-        console.error(`Fehler bei Album "${albumName}":`, error.message);
       }
     }
-  };
+};
 
   export const printSongTable = async () => {
     const database = await initDatabase();

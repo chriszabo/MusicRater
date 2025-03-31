@@ -122,31 +122,34 @@ const RatingsScreen = ({ navigation }) => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
+  const SongItem = React.memo(({ item, onPress }) => (
+    <TouchableOpacity
+      style={styles.item}
+      onPress={() => onPress(item)}>
+      <View style={styles.textContainer}>
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.subtitle}>{item.artist}</Text>
+        {item.album && <Text style={styles.detail}>{item.album}</Text>}
+      </View>
+      <Text style={styles.score}>{item.score}</Text>
+    </TouchableOpacity>
+  ));
+
+  const handleItemPress = (item) => navigation.navigate('Rate', {
+    songId: item.song_id,
+    initialScore: item.score,
+    title: item.title,
+    artist: item.artist,
+    album: item.album,
+    image: item.image,
+    created_at: item.created_at,
+    initialNotes: item.notes
+  })
+
   const renderItem = ({ item }) => {
     switch(mode) {
       case 'songs':
-        return (
-          <TouchableOpacity
-            style={styles.item}
-            onPress={() => navigation.navigate('Rate', {
-              songId: item.song_id,
-              initialScore: item.score,
-              title: item.title,
-              artist: item.artist,
-              album: item.album,
-              image: item.image,
-              created_at: item.created_at,
-              initialNotes: item.notes
-            })}
-          >
-            <View style={styles.textContainer}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.subtitle}>{item.artist}</Text>
-              {item.album && <Text style={styles.detail}>{item.album}</Text>}
-            </View>
-            <Text style={styles.score}>{item.score}</Text>
-          </TouchableOpacity>
-        );
+        return <SongItem item={item} onPress={handleItemPress} />;
       
       case 'artists':
         return (
@@ -296,22 +299,11 @@ const RatingsScreen = ({ navigation }) => {
       ) : (
         <FlatList
           data={data}
-          keyExtractor={(item, index) => {
-            if (!item) return `loading_${index}`; // Fallback für leere Items
-            
-            // Generiere dynamischen Key basierend auf Modus und Inhalt
-            const baseKey = mode === 'songs' 
-              ? `song_${item.song_id}_${item.created_at}`
-              : mode === 'artists'
-              ? `artist_${item.artist}_${item.songCount}`
-              : `album_${item.album}_${item.artist}`;
-          
-            // Füge Sicherheitschecks für undefined Werte hinzu
-            const safeKey = baseKey
-              .replace(/undefined/g, 'unknown')
-              .replace(/\s+/g, '_');
-          
-            return `${safeKey}_${Date.now()}`; // Eindeutigkeit durch Timestamp
+          keyExtractor={(item) => {
+            // Einfacher, stabiler Key basierend auf der Datenstruktur
+            if (mode === 'songs') return `song_${item.song_id}`;
+            if (mode === 'artists') return `artist_${item.artist}`;
+            return `album_${item.album}_${item.artist}`;
           }}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
