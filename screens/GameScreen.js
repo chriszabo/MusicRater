@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, ActivityIndicator, Image, StyleSheet, Alert, View } from 'react-native';
 import { searchArtists, getArtistAlbums, getAlbum } from '../spotify';
 import { updateGameHighscore, getHighscoreForArtist } from '../database';
+import { levenshteinSimilarity } from '../utils';
 import { Ionicons } from '@expo/vector-icons';
 
 const GameScreen = () => {
@@ -95,15 +96,7 @@ const GameScreen = () => {
   };
 
   const similarityPercentage = (str1, str2) => {
-    const longer = str1.length > str2.length ? str1 : str2;
-    const shorter = str1 === longer ? str2 : str1;
-    const lengthDiff = longer.length - shorter.length;
-    
-    if (lengthDiff > 3) return 0; // Zu großer Längenunterschied
-    
-    // Einfache Ähnlichkeitsberechnung
-    const matchingChars = [...shorter].filter((c, i) => c === longer[i]).length;
-    return (matchingChars / longer.length) * 100;
+    return levenshteinSimilarity(str1, str2) * 100;
   };
 
   const normalizeTitle = (title) => {
