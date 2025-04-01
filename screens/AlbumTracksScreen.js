@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, FlatList, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { getAlbum } from '../spotify';
 import SongItem from '../components/SongItem';
-import { addSong, getAllRatings, getExistingRating, addToWatchlist, removeFromWatchlist, getWatchlistItems } from '../database';
+import { addSong, getAllRatings, getExistingRating, addToWatchlist, removeFromWatchlist, getWatchlistItems, getIgnoredSongs, addToIgnored, removeFromIgnored } from '../database';
 import { useFocusEffect } from '@react-navigation/native';
 
 const AlbumTracksScreen = ({ route, navigation }) => {
@@ -11,10 +11,16 @@ const AlbumTracksScreen = ({ route, navigation }) => {
   const [albumInfo, setAlbumInfo] = useState(null);
   const [existingRatings, setExistingRatings] = useState([]);
   const [existingWatchlistItems, setExistingWatchlistItems] = useState([]);
+  const [ignoredSongs, setIgnoredSongs] = useState([]);
+
 
   useEffect(() => {
     const loadAlbum = async () => {
       try {
+        const ignored = await getIgnoredSongs();
+        const ignoredIds = ignored.map(i => i.id)
+        setIgnoredSongs(ignoredIds);
+
         const album = await getAlbum(route.params.albumId);
         setAlbumInfo({
           title: album.name,
@@ -32,7 +38,7 @@ const AlbumTracksScreen = ({ route, navigation }) => {
           album_tracks: album.total_tracks,
         }));
         
-        setTracks(formattedTracks);
+        setTracks(formattedTracks.filter(track => !ignoredIds.includes(track.id)));
       } catch (error) {
         console.error(error);
       } finally {
@@ -41,7 +47,7 @@ const AlbumTracksScreen = ({ route, navigation }) => {
     };
 
     loadAlbum();
-  }, []);
+  }, [route.params.albumId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -95,6 +101,37 @@ const AlbumTracksScreen = ({ route, navigation }) => {
     });
   };
 
+  const handleIgnoreToggle = async (item) => {
+    try {
+      if (ignoredSongs.includes(item.id)) {
+        await removeFromIgnored(item.id);
+        setTracks(prev => [...prev, item]);
+      } else {
+        Alert.alert(
+                      "Song ausblenden",
+                      "Willst du diesen Song aus zukünftigen Suchen ausblenden?",
+                      [
+                        { text: "Abbrechen", style: "cancel" },
+                        { 
+                          text: "Ausblenden", 
+                          style: "default",
+                          onPress: async () => {
+                            await addSong(item);
+                            await addToIgnored(item.id);
+                            setTracks(prev => prev.filter(track => track.id !== item.id));
+                          }
+                        }
+                      ]
+                    );
+        
+      }
+      const updated = await getIgnoredSongs();
+      setIgnoredSongs(updated.map(i => i.id));
+    } catch (error) {
+      console.error("Ignore error:", error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {isLoading ? (
@@ -111,6 +148,8 @@ const AlbumTracksScreen = ({ route, navigation }) => {
               isRated={existingRatings.some(r => r.song_id === item.id)}
               onWatchlistToggle={() => handleWatchlistToggle(item, 'track')}
               isInWatchlist={existingWatchlistItems.some(w => w.id === item.id && w.type === 'track')}
+              isIgnored={ignoredSongs.includes(item.id)}
+              onIgnoreToggle={() => handleIgnoreToggle(item)}
             />
           )}
         />

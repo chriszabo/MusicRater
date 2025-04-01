@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, TextInput, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image } from 'react-native';
+import { View, FlatList, TextInput, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image, Alert } from 'react-native';
 import { searchSpotify, searchArtists, getArtistAlbums, getArtistTopTracks } from '../spotify';
-import { addSong, getExistingRating, incrementProfileData, getAllRatings, getAlbumStatsById, addToWatchlist, removeFromWatchlist, getWatchlistItems } from '../database';
+import { addSong, getExistingRating, incrementProfileData, getAllRatings, getAlbumStatsById, addToWatchlist, removeFromWatchlist, getWatchlistItems, getIgnoredSongs, addToIgnored, removeFromIgnored } from '../database';
 import SongItem from '../components/SongItem';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -38,6 +38,7 @@ const SearchScreen = ({ navigation }) => {
   const [albumStats, setAlbumStats] = useState({});
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [watchlistItems, setWatchlistItems] = useState([]);
+  const [ignoredSongs, setIgnoredSongs] = useState([]);
 
   // Daten laden bei Fokus und Änderungen
   useFocusEffect(
@@ -59,6 +60,50 @@ const SearchScreen = ({ navigation }) => {
       loadWatchlist();
     }, [])
   );
+
+
+useFocusEffect(
+  useCallback(() => {
+    const loadIgnored = async () => {
+      const ignored = await getIgnoredSongs();
+      setIgnoredSongs(ignored.map(i => i.id));
+    };
+    loadIgnored();
+  }, [])
+);
+
+const handleIgnoreToggle = async (item) => {
+  try {
+    if (ignoredSongs.includes(item.id)) {
+      await removeFromIgnored(item.id);
+    } else {
+      Alert.alert(
+              "Song ausblenden",
+              "Willst du diesen Song aus zukünftigen Suchen ausblenden?",
+              [
+                { text: "Abbrechen", style: "cancel" },
+                { 
+                  text: "Ausblenden", 
+                  style: "default",
+                  onPress: async () => {
+                    await addSong(item);
+                    await addToIgnored(item.id);
+                    if (mode === 'topTracks') {
+                      setArtistTracks(prev => prev.filter(t => t.id !== item.id));
+                    } else {
+                      setResults(prev => prev.filter(t => t.id !== item.id));
+                    }
+                  }
+                }
+              ]
+            );
+    }
+    const updated = await getIgnoredSongs();
+    setIgnoredSongs(updated.map(i => i.id));
+  } catch (error) {
+    console.error("Ignore error:", error);
+  }
+};
 
   const handleWatchlistToggle = async (item, type) => {
     try {
@@ -233,8 +278,8 @@ const SearchScreen = ({ navigation }) => {
   // Hilfsfunktionen
   const getCurrentData = () => {
     if (mode === 'artist') return artistAlbums;
-    if (mode === 'topTracks') return artistTracks;
-    return results;
+    if (mode === 'topTracks') return artistTracks.filter(item => !ignoredSongs.includes(item.id));
+    return results.filter(item => !ignoredSongs.includes(item.id));
   };
 
   const renderItem = ({ item }) => {
@@ -247,6 +292,8 @@ const SearchScreen = ({ navigation }) => {
         isRated={existingRatings.some(r => r.song_id === item.id)}
         onWatchlistToggle={() => handleWatchlistToggle(item, 'track')}
         isInWatchlist={watchlistItems.some(w => w.id === item.id && w.type === 'track')}
+        isIgnored={ignoredSongs.includes(item.id)}
+        onIgnoreToggle={() => handleIgnoreToggle(item)}
       />
     );
   };
@@ -278,9 +325,17 @@ const SearchScreen = ({ navigation }) => {
           onSubmitEditing={handleSearch}
           style={styles.input}
         />
-        <TouchableOpacity onPress={() => setMode(prev => modeConfig[prev].next)} style={styles.modeButton}>
+        <View style={styles.buttonsContainer}>
+        <TouchableOpacity 
+      onPress={() => navigation.navigate('IgnoredSongs')}
+      style={styles.iconButton}
+    >
+      <Ionicons name="eye-off" size={24} color="#2A9D8F" />
+    </TouchableOpacity>
+        <TouchableOpacity onPress={() => setMode(prev => modeConfig[prev].next)} style={styles.iconButton}>
           <Ionicons name={modeConfig[mode].icon} size={28} color="#2A9D8F" />
         </TouchableOpacity>
+        </View>
       </View>
       {renderContent()}
     </View>
@@ -297,6 +352,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginBottom: 20,
+    alignItems: 'center',
   },
   input: {
     flex: 1,
@@ -373,6 +429,17 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 10,
     color: '#2A9D8F',
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  iconButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#F0FAF9',
   },
 });
 

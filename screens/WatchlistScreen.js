@@ -59,7 +59,7 @@ const WatchlistScreen = ({ navigation }) => {
           const existingRating = await getExistingRating(item.id);
           navigation.navigate('Rate', { 
             songId: item.id,
-            title: item.song_title,
+            title: item.title,
             artist: item.artist,
             album: item.album,
             image: item.image,

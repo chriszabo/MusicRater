@@ -93,6 +93,13 @@ export const initDatabase = async () => {
         FOREIGN KEY (profile_name) REFERENCES profiledata(profile_name)
       );
     `);
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS ignored_songs (
+        id TEXT NOT NULL,
+        profile_name TEXT NOT NULL,
+        PRIMARY KEY (id, profile_name)
+      );
+    `);
   }
   return db;
 } catch (error)
@@ -112,6 +119,35 @@ export const addSong = async (song) => {
       [song.id, song.title, song.artist, song.album, song.duration, song.image, song.album_id, song.album_tracks]
     );
   };
+
+  export const getIgnoredSongsData = async () => {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    if (!profileName) return [];
+    
+    try {
+        const songs = await database.getAllAsync(
+            `SELECT 
+                songs.id,
+                songs.title,
+                songs.artist,
+                songs.album,
+                songs.image_url AS image,
+                songs.album_id,
+                songs.album_tracks
+            FROM songs 
+            JOIN ignored_songs ON songs.id = ignored_songs.id 
+            WHERE ignored_songs.profile_name = ?`,
+            [profileName]
+        );
+        
+        console.log("Ignored songs data:", songs);
+        return songs;
+    } catch(error) {
+        console.error("Error fetching ignored songs:", error);
+        return [];
+    }
+};
 
 export const addRating = async (songId, score, notes) => {
   const database = await initDatabase();
@@ -820,4 +856,31 @@ export const deleteRating = async (songId) => {
       [profileName]
     );
     return result?.notes || '';
+  };
+
+  export const addToIgnored = async (songId) => {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    await database.runAsync(
+      'INSERT OR IGNORE INTO ignored_songs (id, profile_name) VALUES (?, ?)',
+      [songId, profileName]
+    );
+  };
+  
+  export const removeFromIgnored = async (songId) => {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    await database.runAsync(
+      'DELETE FROM ignored_songs WHERE id = ? AND profile_name = ?',
+      [songId, profileName]
+    );
+  };
+  
+  export const getIgnoredSongs = async () => {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    return await database.getAllAsync(
+      'SELECT id FROM ignored_songs WHERE profile_name = ?',
+      [profileName]
+    );
   };

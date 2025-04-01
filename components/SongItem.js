@@ -11,7 +11,7 @@ const COLORS = {
     error: '#E76F51',    // Warmes Korallenrot
   };
   
-  const SongItem = ({ song, onPress, score, isRated, isInWatchlist, onWatchlistToggle }) => {
+  const SongItem = ({ song, onPress, score, isRated, isInWatchlist, onWatchlistToggle, isIgnored, onIgnoreToggle, showSubButtons = true }) => {
     return (
       <TouchableOpacity 
         onPress={(e) => {
@@ -31,6 +31,7 @@ const COLORS = {
             <Text style={styles.scoreText}>{score}</Text>
           </View>
         )}
+        {showSubButtons &&(
         <TouchableOpacity onPress={onWatchlistToggle}>
       <Ionicons 
         name={isInWatchlist ? 'bookmark' : 'bookmark-outline'} 
@@ -38,6 +39,14 @@ const COLORS = {
         color={isInWatchlist ? '#2A9D8F' : '#666'} 
       />
     </TouchableOpacity>
+    )}
+    <TouchableOpacity onPress={onIgnoreToggle} style={styles.ignoreButton}>
+        <Ionicons 
+          name={isIgnored ? 'eye' : 'eye-off'} 
+          size={24} 
+          color={isIgnored ? '#666' : '#666'} 
+        />
+      </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -104,7 +113,11 @@ const COLORS = {
       backgroundColor: '#F0FAF9',
       borderWidth: 2,
       borderColor: '#2A9D8F40',
-    }
+    },
+    ignoreButton: {
+      marginLeft: 10,
+      padding: 5,
+    },
   });
 
 export default SongItem;

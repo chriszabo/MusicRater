@@ -18,6 +18,7 @@ import AlbumTracksScreen from './screens/AlbumTracksScreen';
 import CustomRatingScreen from './screens/CustomRatingScreen';
 import AchievementScreen from './screens/AchievementScreen';
 import WatchlistScreen from './screens/WatchlistScreen';
+import IgnoredSongsScreen from './screens/IgnoredSongScreen';
 import GameScreen from './screens/GameScreen';
 import { COLORS } from './config/colors';
 
@@ -42,6 +43,7 @@ const SearchStackScreen = () => (
     <SearchStack.Screen name="AlbumTracks" component={AlbumTracksScreen} />
     <SearchStack.Screen name="Rate" component={RateScreen} />
     <SearchStack.Screen name="Watchlist" component={WatchlistScreen} />
+    <SearchStack.Screen name="IgnoredSongs" component={IgnoredSongsScreen} />
   </SearchStack.Navigator>
 );
 
