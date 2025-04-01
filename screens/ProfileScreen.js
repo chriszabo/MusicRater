@@ -98,6 +98,25 @@ const ProfileScreen = () => {
         [currentProfile]
       );
 
+      const watchlist = await database.getAllAsync(
+        'SELECT * FROM watchlist WHERE profile_name = ?',
+        [currentProfile]
+      );
+      
+      const albums = await database.getAllAsync(
+        'SELECT * FROM albums WHERE id IN (SELECT id FROM watchlist WHERE type = "album")'
+      );
+  
+      const globalNotes = await database.getAllAsync(
+        'SELECT * FROM global_watchlist_notes WHERE profile_name = ?',
+        [currentProfile]
+      );
+  
+      const ignored = await database.getAllAsync(
+        'SELECT * FROM ignored_songs WHERE profile_name = ?',
+        [currentProfile]
+      );
+
       // Extract unique songs
       const songsMap = new Map();
       ratings.forEach(r => {
@@ -129,7 +148,11 @@ const ProfileScreen = () => {
             unlocked_at: a.unlocked_at
           })),
           profiledata: profileData,
-          game_highscores: gameHighscores
+          game_highscores: gameHighscores,
+          watchlist,
+          albums,
+          global_watchlist_notes: globalNotes,
+          ignored_songs: ignored
       };
 
       const fileUri = FileSystem.documentDirectory + `${currentProfile}_export.json`;
@@ -157,84 +180,135 @@ const ProfileScreen = () => {
       );
     };
 
-  const handleImport = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
-      if (result.canceled == 'false') return;
-      console.log("success")
-      const asset = result.assets[0]
-      const json = await FileSystem.readAsStringAsync(asset.uri);
-      const { profileName, songs, ratings, achievements, profiledata, game_highscores } = JSON.parse(json);
-
-      await AsyncStorage.setItem('currentProfile', profileName);
-      setCurrentProfile(profileName);
-
-      // Import songs
-      for (const song of songs) {
-        song.image = song.image_url;
-        console.log("song", song)
-        await addSong(song);
-      }
-
-      // Import ratings
-      for (const rating of ratings) {
-        console.log("rating", rating)
-        await addRating(rating.song_id, rating.score, rating.notes || "");
-      }
-
-      const database = await initDatabase();
-      if (achievements) {
-        for (const ach of achievements) {
-          await database.runAsync(
-            `INSERT OR REPLACE INTO achievements (name, profile_name, unlocked_at) 
-             VALUES (?, ?, ?)`,
-            [ach.name, profileName, ach.unlocked_at]
-          );
+    const handleImport = async () => {
+      try {
+        const result = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
+        if (result.canceled) return;
+        
+        const asset = result.assets[0];
+        const json = await FileSystem.readAsStringAsync(asset.uri);
+        const { 
+          profileName: importedProfile, 
+          songs, 
+          ratings, 
+          achievements,
+          profiledata,
+          game_highscores,
+          watchlist,
+          albums,
+          global_watchlist_notes,
+          ignored_songs
+        } = JSON.parse(json);
+    
+        const database = await initDatabase();
+        await database.execAsync('BEGIN TRANSACTION');
+    
+        try {
+          // 1. Profil setzen
+          await AsyncStorage.setItem('currentProfile', importedProfile);
+          setCurrentProfile(importedProfile);
+    
+          // 2. Songs in Batch importieren
+          const songValues = songs.map(s => [
+            s.id, s.title, s.artist, s.album, s.duration, 
+            s.image_url, s.album_id, s.album_tracks
+          ]);
+          await database.execAsync(`
+            INSERT OR REPLACE INTO songs 
+            (id, title, artist, album, duration, image_url, album_id, album_tracks)
+            VALUES ${songs.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(',')}
+          `, songValues.flat());
+    
+          // 3. Ratings in Batch importieren
+          const ratingValues = ratings.map(r => [
+            r.song_id, r.score, importedProfile, r.notes || ""
+          ]);
+          await database.execAsync(`
+            INSERT OR REPLACE INTO ratings 
+            (song_id, score, profile_name, notes)
+            VALUES ${ratings.map(() => '(?, ?, ?, ?)').join(',')}
+          `, ratingValues.flat());
+    
+          // 4. Parallel unabhängige Tabellen importieren
+          await Promise.all([
+            // Achievements
+            database.execAsync(
+              `INSERT OR REPLACE INTO achievements 
+              (name, profile_name, unlocked_at)
+              VALUES ${achievements.map(() => '(?, ?, ?)').join(',')}`,
+              achievements.flatMap(a => [a.name, importedProfile, a.unlocked_at])
+            ),
+          
+            // Profiledata
+            profiledata && database.execAsync(
+              `INSERT OR REPLACE INTO profiledata 
+              (profile_name, spotify_links_opened, artist_statistics_opened, 
+               top_tracks_opened, songs_searched, artist_mode_opened, 
+               top_artists_limit, top_albums_limit, show_incomplete_albums)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                importedProfile,
+                profiledata.spotify_links_opened,
+                profiledata.artist_statistics_opened,
+                profiledata.top_tracks_opened,
+                profiledata.songs_searched,
+                profiledata.artist_mode_opened,
+                profiledata?.top_artists_limit || 5,
+                profiledata?.top_albums_limit || 10,
+                profiledata?.show_incomplete_albums ?? 1
+              ]
+            ),
+          
+            // Game highscores
+            game_highscores && database.execAsync(
+              `INSERT OR REPLACE INTO game_highscores 
+              (profile_name, artist, artist_id, score, created_at)
+              VALUES ${game_highscores.map(() => '(?, ?, ?, ?, ?)').join(',')}`,
+              game_highscores.flatMap(h => [
+                importedProfile, h.artist, h.artist_id, h.score, h.created_at
+              ])
+            ),
+          
+            // Watchlist
+            watchlist && database.execAsync(
+              `INSERT OR REPLACE INTO watchlist 
+              (id, type, profile_name)
+              VALUES ${watchlist.map(() => '(?, ?, ?)').join(',')}`,
+              watchlist.flatMap(w => [w.id, w.type, importedProfile])
+            ),
+          
+            // Albums
+            albums && database.execAsync(
+              `INSERT OR REPLACE INTO albums 
+              (id, title, artist, image_url, total_tracks, release_date)
+              VALUES ${albums.map(() => '(?, ?, ?, ?, ?, ?)').join(',')}`,
+              albums.flatMap(a => [
+                a.id, a.title, a.artist, a.image_url, a.total_tracks, a.release_date
+              ])
+            ),
+          
+            // Ignored songs
+            ignored_songs && database.execAsync(
+              `INSERT OR IGNORE INTO ignored_songs 
+              (id, profile_name)
+              VALUES ${ignored_songs.map(() => '(?, ?)').join(',')}`,
+              ignored_songs.flatMap(i => [i.id, importedProfile])
+            )
+          ]);
+    
+          await database.execAsync('COMMIT');
+          await migrateAlbumInfo();
+          await loadProfile();
+    
+          Alert.alert("Erfolg", `Profil "${importedProfile}" importiert!`);
+        } catch (error) {
+          await database.execAsync('ROLLBACK');
+          throw error;
         }
+      } catch (error) {
+        Alert.alert("Import fehlgeschlagen", error.message);
       }
-
-      if (profiledata) {
-        for (const data of profiledata) {
-          await database.runAsync(
-            `INSERT OR REPLACE INTO profiledata 
-             (profile_name, spotify_links_opened, artist_statistics_opened, 
-              top_tracks_opened, songs_searched, artist_mode_opened, top_artists_limit, top_albums_limit, show_incomplete_albums) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              data.profile_name,
-              data.spotify_links_opened,
-              data.artist_statistics_opened,
-              data.top_tracks_opened,
-              data.songs_searched,
-              data.artist_mode_opened,
-              data?.top_artists_limit || 5,
-              data?.top_albums_limit || 10,
-              data?.show_incomplete_albums ?? 1
-            ]
-          );
-        }
-      }
-  
-      // Import game_highscores
-      if (game_highscores) {
-        for (const hs of game_highscores) {
-          await database.runAsync(
-            `INSERT OR REPLACE INTO game_highscores 
-             (profile_name, artist, artist_id, score, created_at) 
-             VALUES (?, ?, ?, ?, ?)`,
-            [hs.profile_name, hs.artist, hs.artist_id, hs.score, hs.created_at]
-          );
-        }
-      }
-
-      await migrateAlbumInfo();
-      await loadProfile();
-
-      Alert.alert("Erfolg", `Profil "${profileName}" importiert!`);
-    } catch (error) {
-      Alert.alert("Import fehlgeschlagen", error.message);
-    }
-  };
+    };
 
   return (
     <ScrollView 

@@ -379,11 +379,26 @@ export const ACHIEVEMENT_DEFINITIONS = [
       SELECT COUNT(*) FROM (
         SELECT s.album_id 
         FROM ratings r
-        JOIN songs s ON r.song_id = s.id 
+        JOIN songs s ON r.song_id = s.id
+        LEFT JOIN ignored_songs i 
+          ON r.song_id = i.id 
+          AND i.profile_name = r.profile_name
         WHERE r.profile_name = $profile 
           AND s.album_id IS NOT NULL
+          AND i.id IS NULL
         GROUP BY s.album_id 
-        HAVING COUNT(DISTINCT r.song_id) >= s.album_tracks AND s.album_tracks > 0
+        HAVING COUNT(DISTINCT r.song_id) >= (
+          s.album_tracks - (
+            SELECT COUNT(*) 
+            FROM ignored_songs i2 
+            WHERE i2.profile_name = r.profile_name 
+              AND i2.id IN (
+                SELECT id 
+                FROM songs 
+                WHERE album_id = s.album_id
+              )
+          )
+        ) AND s.album_tracks > 0
       )`,
     threshold: 5,
     color: '#CD7F32'
@@ -397,11 +412,26 @@ export const ACHIEVEMENT_DEFINITIONS = [
       SELECT COUNT(*) FROM (
         SELECT s.album_id 
         FROM ratings r
-        JOIN songs s ON r.song_id = s.id 
+        JOIN songs s ON r.song_id = s.id
+        LEFT JOIN ignored_songs i 
+          ON r.song_id = i.id 
+          AND i.profile_name = r.profile_name
         WHERE r.profile_name = $profile 
           AND s.album_id IS NOT NULL
+          AND i.id IS NULL
         GROUP BY s.album_id 
-        HAVING COUNT(DISTINCT r.song_id) >= s.album_tracks AND s.album_tracks > 0
+        HAVING COUNT(DISTINCT r.song_id) >= (
+          s.album_tracks - (
+            SELECT COUNT(*) 
+            FROM ignored_songs i2 
+            WHERE i2.profile_name = r.profile_name 
+              AND i2.id IN (
+                SELECT id 
+                FROM songs 
+                WHERE album_id = s.album_id
+              )
+          )
+        ) AND s.album_tracks > 0
       )`,
     threshold: 20,
     color: '#C0C0C0'
@@ -415,11 +445,26 @@ export const ACHIEVEMENT_DEFINITIONS = [
       SELECT COUNT(*) FROM (
         SELECT s.album_id 
         FROM ratings r
-        JOIN songs s ON r.song_id = s.id 
+        JOIN songs s ON r.song_id = s.id
+        LEFT JOIN ignored_songs i 
+          ON r.song_id = i.id 
+          AND i.profile_name = r.profile_name
         WHERE r.profile_name = $profile 
           AND s.album_id IS NOT NULL
+          AND i.id IS NULL
         GROUP BY s.album_id 
-        HAVING COUNT(DISTINCT r.song_id) >= s.album_tracks AND s.album_tracks > 0
+        HAVING COUNT(DISTINCT r.song_id) >= (
+          s.album_tracks - (
+            SELECT COUNT(*) 
+            FROM ignored_songs i2 
+            WHERE i2.profile_name = r.profile_name 
+              AND i2.id IN (
+                SELECT id 
+                FROM songs 
+                WHERE album_id = s.album_id
+              )
+          )
+        ) AND s.album_tracks > 0
       )`,
     threshold: 50,
     color: '#FFD700'

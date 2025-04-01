@@ -372,10 +372,25 @@ export const deleteRating = async (songId) => {
         s.album_tracks as total_tracks
       FROM ratings r
       JOIN songs s ON r.song_id = s.id 
+      LEFT JOIN ignored_songs i 
+        ON r.song_id = i.id 
+        AND i.profile_name = r.profile_name
       WHERE r.profile_name = $profile 
         AND s.album_id IS NOT NULL
+        AND i.id IS NULL
       GROUP BY s.album_id 
-      HAVING rated_tracks >= total_tracks AND total_tracks > 0
+      HAVING rated_tracks >= (
+        s.album_tracks - (
+          SELECT COUNT(*) 
+          FROM ignored_songs i2 
+          WHERE i2.profile_name = r.profile_name 
+            AND i2.id IN (
+              SELECT id 
+              FROM songs 
+              WHERE album_id = s.album_id
+            )
+        )
+      ) AND total_tracks > 0
     `, { $profile: profileName });
 
     const incompleteAlbums = await database.getAllAsync(`
@@ -387,10 +402,25 @@ export const deleteRating = async (songId) => {
         s.album_tracks as total_tracks
       FROM ratings r
       JOIN songs s ON r.song_id = s.id 
+      LEFT JOIN ignored_songs i 
+        ON r.song_id = i.id 
+        AND i.profile_name = r.profile_name
       WHERE r.profile_name = $profile 
         AND s.album_id IS NOT NULL
+        AND i.id IS NULL
       GROUP BY s.album_id 
-      HAVING rated_tracks < total_tracks
+      HAVING rated_tracks < (
+        s.album_tracks - (
+          SELECT COUNT(*) 
+          FROM ignored_songs i2 
+          WHERE i2.profile_name = $profile 
+            AND i2.id IN (
+              SELECT id 
+              FROM songs 
+              WHERE album_id = s.album_id
+            )
+        )
+      )
     `, { $profile: profileName });
   
     return {
@@ -884,3 +914,15 @@ export const deleteRating = async (songId) => {
       [profileName]
     );
   };
+
+  export const getIgnoredCount = async (album) => {
+    const database = await initDatabase();
+    const profileName = await AsyncStorage.getItem('currentProfile');
+    return await database.getFirstAsync(
+                `SELECT COUNT(*) as count 
+                 FROM ignored_songs 
+                 WHERE profile_name = ? 
+                 AND id IN (SELECT id FROM songs WHERE album_id = ?)`,
+                [profileName, album.id]
+              );
+  }

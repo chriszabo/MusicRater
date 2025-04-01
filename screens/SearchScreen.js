@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, TextInput, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image, Alert } from 'react-native';
 import { searchSpotify, searchArtists, getArtistAlbums, getArtistTopTracks } from '../spotify';
-import { addSong, getExistingRating, incrementProfileData, getAllRatings, getAlbumStatsById, addToWatchlist, removeFromWatchlist, getWatchlistItems, getIgnoredSongs, addToIgnored, removeFromIgnored } from '../database';
+import { addSong, getIgnoredCount, getExistingRating, incrementProfileData, getAllRatings, getAlbumStatsById, addToWatchlist, removeFromWatchlist, getWatchlistItems, getIgnoredSongs, addToIgnored, removeFromIgnored } from '../database';
 import SongItem from '../components/SongItem';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -137,15 +137,20 @@ const handleIgnoreToggle = async (item) => {
     try {
       const statsPromises = artistAlbums.map(async album => {
         try {
+          // Ignorierte Songs für dieses Album zählen
+          const ignoredCount = await getIgnoredCount(album);
+          
           const data = await getAlbumStatsById(album.id);
           return {
             id: album.id,
             avg: data?.avgScore || 0,
             rated: data?.ratedSongs || 0,
-            total: album.total_tracks
+            total: album.total_tracks,
+            ignored: ignoredCount?.count || 0
           };
         } catch (e) {
-          return { id: album.id, avg: 0, rated: 0, total: album.total_tracks };
+          console.error(e)
+          return { id: album.id, avg: 0, rated: 0, total: album.total_tracks, ignored: 0 };
         }
       });
 
@@ -228,7 +233,7 @@ const handleIgnoreToggle = async (item) => {
   // Memoized Komponenten
   const AlbumItem = useCallback(({ item }) => {
     const stats = albumStats[item.id];
-    const isFullyRated = stats?.rated === item.total_tracks;
+    const isFullyRated = (stats?.rated + stats?.ignored) >= stats?.total;
     const isInWatchlist = watchlistItems.some(w => w.id === item.id && w.type === 'album');
 
     return (
@@ -241,7 +246,7 @@ const handleIgnoreToggle = async (item) => {
           <Text style={styles.albumTitle}>{item.name}</Text>
           {stats && (
             <Text style={styles.albumDetails}>
-              {`${stats.rated}/${item.total_tracks} Songs • ${new Date(item.release_date).getFullYear()}`}
+              {`${stats.rated}${stats.ignored > 0 ? `+${stats.ignored}` : ''}/${item.total_tracks} Songs • ${new Date(item.release_date).getFullYear()}`}
               <Text style={styles.ratingInfo}>{` • Ø ${stats.avg.toFixed(1)}`}</Text>
             </Text>
           )}
