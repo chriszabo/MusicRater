@@ -13,11 +13,11 @@ const GameScreen = () => {
   const [attempts, setAttempts] = useState(3);
   const [correctGuesses, setCorrectGuesses] = useState(0);
   const [jokers, setJokers] = useState({
-    showMore: 1,
-    showCover: 1,
-    showInitial: 1,
-    showDuration: 1,
-    skip: 1
+    showMore: 5,
+    showCover: 3,
+    showInitial: 3,
+    showDuration: 5,
+    skip: 3
   });
   const [usedJokers, setUsedJokers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -148,11 +148,11 @@ const GameScreen = () => {
     if(fullReset) {
       setCorrectGuesses(0);
       setJokers({
-        showMore: 1,
-        showCover: 1,
-        showInitial: 1,
-        showDuration: 1,
-        skip: 1
+        showMore: 5,
+        showCover: 3,
+        showInitial: 3,
+        showDuration: 5,
+        skip: 3
       });
       setUsedSongs([]);
       setUsedJokers([]); // Reset der verwendeten Joker-Liste
@@ -160,16 +160,21 @@ const GameScreen = () => {
   };
 
   const startGame = async (isNewGame = true) => {
-    console.log("Start Game", artistInput);
-    let reset_flag = null
-    if (!artistInput) return;
+    console.log("Start Game");
+    let reset_flag = null;
+    let artist = null;
     setIsLoading(true);
-
+    
     try {
-      const artist = await searchArtists(artistInput);
-      if (!artist) throw new Error('Artist not found');
-
+      
       if(isNewGame) {
+        if (!artistInput){
+          Alert.alert("Interpret-Feld muss ausgefüllt sein, um ein neues Spiel zu starten.")
+          setIsLoading(false)
+          return;
+        }
+        artist = await searchArtists(artistInput);
+        if (!artist) throw new Error(`Interpret '${artist.name} nicht gefunden`);
         const artist_highscore = await getHighscoreForArtist(artist.id);
         setCurrentArtistHighscore(artist_highscore);
         resetGameState(true); // Vollständiger Reset
@@ -185,6 +190,7 @@ const GameScreen = () => {
         }
       } else {
         // Teilreset: Behalte Joker-Zustand
+        artist = currentArtist
         setAttempts(3);
         setGuess('');
         setVisibleLines(5);
@@ -283,30 +289,33 @@ const GameScreen = () => {
   const useJoker = (type) => {
     if (!jokers[type]) return;
 
-    setJokers(prev => ({ 
-      ...prev, 
-      [type]: prev[type] - 1 
-    }));
     
     switch(type) {
       case 'showMore':
         setVisibleLines(prev => prev + 5);
         break;
-      case 'showCover':
-        setShowCover(true);
-        break;
-      case 'showInitial':
-        setShowInitial(true);
-        break;
-      case 'showDuration':
-        setShowDuration(true);
-        break;
-      case 'skip':
-        skipSong();
-        break;
+        case 'showCover':
+          if (showCover) return;
+          setShowCover(true);
+          break;
+          case 'showInitial':
+            if (showInitial) return;
+            setShowInitial(true);
+            break;
+            case 'showDuration':
+              if (showDuration) return;
+              setShowDuration(true);
+              break;
+              case 'skip':
+                skipSong();
+                break;
     }
-  };
-
+    setJokers(prev => ({ 
+      ...prev, 
+      [type]: prev[type] - 1 
+    }));
+    };
+            
   const getLyricsPreview = () => {
     const lines = lyrics.split('\n').filter(l => l.trim() !== '');
     return lines.slice(0, visibleLines).join('\n');
@@ -321,6 +330,7 @@ const GameScreen = () => {
         style={styles.jokerButton}
       >
         <Ionicons name={icon} size={30} color="#2A9D8F" />
+        <Text style={styles.jokerCount}>{jokers[type]}</Text>
       </TouchableOpacity>
     );
   };
@@ -485,6 +495,12 @@ const styles = StyleSheet.create({
     color: '#2A9D8F',
     textAlign: 'center',
     marginVertical: 5,
+  },
+  jokerCount: {
+    fontSize: 12,
+    color: '#2A9D8F',
+    textAlign: 'center',
+    marginTop: 2,
   },
 });
 
