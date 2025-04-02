@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, FlatList, StyleSheet, Text, Image } from 'react-native';
 import { getAllAchievements, checkAchievements } from '../database';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
+import { useTheme } from '../ThemeContext';
 
 const AchievementScreen = () => {
   const [achievements, setAchievements] = useState([]);
   const isFocused = useIsFocused();
+  const { COLORS } = useTheme();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   useEffect(() => {
     const load = async () => {
@@ -41,7 +44,7 @@ const AchievementScreen = () => {
             <Ionicons
               name={item.unlocked ? item.icon : 'lock-closed'}
               size={32}
-              color={item.unlocked ? item.color : '#ccc'} // Farbe an Achievement-Level
+              color={item.unlocked ? item.color : COLORS.background} // Farbe an Achievement-Level
               style={styles.icon}
             />
             <View style={styles.textContainer}>
@@ -73,51 +76,73 @@ const AchievementScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-    item: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: 'white',
-      padding: 15,
-      marginVertical: 8,
-      borderRadius: 10,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      elevation: 2,
-      borderLeftWidth: 5,
+const createStyles = (COLORS) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    padding: 10,
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    padding: 15,
+    marginVertical: 8,
+    marginHorizontal: 10,
+    borderRadius: 10,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    borderLeftWidth: 5,
+  },
+  lockedItem: {
+    opacity: 0.7,
+    backgroundColor: COLORS.surfaceVariant,
+  },
+  textContainer: {
+    flex: 1,
     marginLeft: 10,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  description: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  date: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  progressContainer: {
+    marginTop: 12,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: COLORS.albumBorder,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 3,
+  },
+  progressText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  icon: {
     marginRight: 15,
-    },
-    lockedItem: {
-        opacity: 0.6,
-        backgroundColor: '#f9f9f9'
-      },
-      textContainer: {
-        flex: 1,
-      },
-      progressContainer: {
-        marginTop: 8,
-      },
-      progressBar: {
-        height: 6,
-        backgroundColor: '#e0e0e0',
-        borderRadius: 3,
-        overflow: 'hidden',
-      },
-      progressFill: {
-        height: '100%',
-        backgroundColor: '#2A9D8F',
-        borderRadius: 3,
-      },
-      progressText: {
-        marginTop: 4,
-        fontSize: 12,
-        color: '#666',
-      },
-      icon: {
-        marginRight: 15,
-      },
-  });
+  },
+});
 
 export default AchievementScreen;

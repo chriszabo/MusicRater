@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, FlatList, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { getAlbum } from '../spotify';
 import SongItem from '../components/SongItem';
 import { addSong, getAllRatings, getExistingRating, addToWatchlist, removeFromWatchlist, getWatchlistItems, getIgnoredSongs, addToIgnored, removeFromIgnored } from '../database';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTheme } from '../ThemeContext';
 
 const AlbumTracksScreen = ({ route, navigation }) => {
   const [tracks, setTracks] = useState([]);
@@ -12,6 +13,8 @@ const AlbumTracksScreen = ({ route, navigation }) => {
   const [existingRatings, setExistingRatings] = useState([]);
   const [existingWatchlistItems, setExistingWatchlistItems] = useState([]);
   const [ignoredSongs, setIgnoredSongs] = useState([]);
+  const { COLORS } = useTheme();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
 
   useEffect(() => {
@@ -158,11 +161,59 @@ const AlbumTracksScreen = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.background,
+    padding: 15,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    marginBottom: 15,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  albumCover: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 15,
+  },
+  albumTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    flexShrink: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyState: {
+    textAlign: 'center',
+    color: COLORS.textSecondary,
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+  },
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 20,
+    marginBottom: 10,
+    paddingLeft: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
   },
 });
 

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, ActivityIndicator, Image, StyleSheet, Alert, View } from 'react-native';
 import { searchArtists, getArtistAlbums, getAlbum } from '../spotify';
 import { updateGameHighscore, getHighscoreForArtist } from '../database';
 import { levenshteinSimilarity } from '../utils';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../ThemeContext';
 
 const GameScreen = () => {
   const [artistInput, setArtistInput] = useState('');
@@ -29,6 +30,8 @@ const GameScreen = () => {
   const [currentArtist, setCurrentArtist] = useState(null);
   const [showDuration, setShowDuration] = useState(false);
   const [currentArtistHighscore, setCurrentArtistHighscore] = useState(0);
+  const { COLORS } = useTheme();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
 
   useEffect(() => {
@@ -329,7 +332,7 @@ const GameScreen = () => {
         onPress={() => useJoker(type)}
         style={styles.jokerButton}
       >
-        <Ionicons name={icon} size={30} color="#2A9D8F" />
+        <Ionicons name={icon} size={30} color={ COLORS.primary } />
         <Text style={styles.jokerCount}>{jokers[type]}</Text>
       </TouchableOpacity>
     );
@@ -347,6 +350,7 @@ const GameScreen = () => {
         placeholder="Interpreten eingeben"
         value={artistInput}
         onChangeText={setArtistInput}
+        placeholderTextColor={COLORS.text + '90'}
       />
       <TouchableOpacity
         style={styles.startButton}
@@ -384,6 +388,7 @@ const GameScreen = () => {
             value={guess}
             onChangeText={setGuess}
             onSubmitEditing={handleGuess}
+            placeholderTextColor={COLORS.text + '90'}
           />
 
           <View style={styles.stats}>
@@ -402,32 +407,51 @@ const GameScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (COLORS) => StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 20,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.background,
   },
   input: {
-    backgroundColor: 'white',
-    padding: 15,
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
-    marginBottom: 10,
+    padding: 15,
+    marginBottom: 15,
     fontSize: 16,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.albumBorder,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   gameArea: {
-    marginTop: 20,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    padding: 20,
+    marginTop: 15,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   lyricsBox: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
     padding: 15,
-    borderRadius: 10,
     minHeight: 150,
     marginVertical: 10,
+    borderWidth: 1,
+    borderColor: COLORS.albumBorder,
   },
   lyricsText: {
     fontSize: 16,
     lineHeight: 24,
+    color: COLORS.text,
   },
   cover: {
     width: 200,
@@ -435,71 +459,92 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginVertical: 10,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.albumBorder,
   },
   stats: {
-    marginTop: 15,
-    padding: 10,
-    backgroundColor: '#F0FAF9',
+    backgroundColor: COLORS.primary + '20',
     borderRadius: 10,
+    padding: 15,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
   },
   jokerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 10,
+    marginTop: 15,
   },
   header: {
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 10,
-    color: '#2A9D8F',
+    marginBottom: 15,
+    color: COLORS.primary,
   },
   loader: {
     marginTop: 20,
   },
   startButton: {
-    backgroundColor: '#2A9D8F',
+    backgroundColor: COLORS.primary,
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
     marginBottom: 20,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonText: {
-    color: 'white',
+    color: COLORS.surface,
     fontWeight: 'bold',
     fontSize: 16,
   },
   score: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2A9D8F',
-    marginBottom: 10,
+    color: COLORS.text,
+    marginBottom: 15,
     textAlign: 'center',
+    backgroundColor: COLORS.surface,
+    padding: 10,
+    borderRadius: 8,
   },
   attempts: {
     fontSize: 16,
-    marginBottom: 5,
+    color: COLORS.text,
     textAlign: 'center',
+    marginBottom: 10,
   },
   initialHint: {
     fontSize: 16,
-    color: '#2A9D8F',
+    color: COLORS.primary,
+    fontWeight: '600',
     textAlign: 'center',
     marginVertical: 5,
-  },
-  disabledJoker: {
-    opacity: 0.5,
   },
   durationHint: {
     fontSize: 16,
-    color: '#2A9D8F',
+    color: COLORS.primary,
+    fontWeight: '600',
     textAlign: 'center',
     marginVertical: 5,
   },
+  jokerButton: {
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary + '20',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+    width: 60,
+  },
   jokerCount: {
     fontSize: 12,
-    color: '#2A9D8F',
-    textAlign: 'center',
+    color: COLORS.primary,
+    fontWeight: '600',
     marginTop: 2,
   },
 });

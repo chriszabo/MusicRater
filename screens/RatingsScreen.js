@@ -1,19 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, Text, TextInput, Button, FlatList, 
-  ActivityIndicator, StyleSheet, TouchableOpacity 
+  ActivityIndicator, StyleSheet, TouchableOpacity, Platform 
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { getAllRatings, getArtistStats2, getAlbumStats } from '../database';
 import { Ionicons } from '@expo/vector-icons';
-
-const COLORS = {
-  primary: '#2A9D8F',
-  secondary: '#264653',
-  background: '#F8F9FA',
-  text: '#2B2D42',
-  error: '#E76F51',
-};
+import { useTheme } from '../ThemeContext';
 
 const modeConfig = {
   songs: {
@@ -48,6 +41,8 @@ const RatingsScreen = ({ navigation }) => {
   const [maxScore, setMaxScore] = useState('');
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const [prevMode, setPrevMode] = useState(null);
+  const { COLORS } = useTheme();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   const loadData = async () => {
     try {
@@ -199,6 +194,7 @@ const RatingsScreen = ({ navigation }) => {
             onValueChange={setSortBy}
             style={styles.picker}
             dropdownIconColor={COLORS.primary}
+            theme={Platform.OS === 'android' ? 'dark' : 'light'}
           >
             {mode === 'songs' && (
               [
@@ -258,18 +254,21 @@ const RatingsScreen = ({ navigation }) => {
             placeholder="Songname..."
             value={titleFilter}
             onChangeText={setTitleFilter}
+            placeholderTextColor={COLORS.text + '90'}
           />
           <TextInput
             style={styles.input}
             placeholder="Interpret..."
             value={artistFilter}
             onChangeText={setArtistFilter}
+            placeholderTextColor={COLORS.text + '90'}
           />
           <TextInput
             style={styles.input}
             placeholder="Album..."
             value={albumFilter}
             onChangeText={setAlbumFilter}
+            placeholderTextColor={COLORS.text + '90'}
           />
           <View style={styles.scoreFilter}>
             <TextInput
@@ -278,6 +277,7 @@ const RatingsScreen = ({ navigation }) => {
               value={minScore}
               onChangeText={setMinScore}
               keyboardType="numeric"
+              placeholderTextColor={COLORS.text + '90'}
             />
             <TextInput
               style={[styles.input, styles.scoreInput]}
@@ -285,6 +285,7 @@ const RatingsScreen = ({ navigation }) => {
               value={maxScore}
               onChangeText={setMaxScore}
               keyboardType="numeric"
+              placeholderTextColor={COLORS.text + '90'}
             />
           </View>
           <Button title="Filter anwenden" onPress={loadData} color={COLORS.primary} />
@@ -313,84 +314,106 @@ const RatingsScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
-    padding: 15,
     backgroundColor: COLORS.background,
+    padding: 15,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 8,
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 15,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   modeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FAF9',
-    padding: 10,
+    backgroundColor: COLORS.primary + '20',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
   },
   modeText: {
     marginLeft: 8,
     color: COLORS.primary,
     fontWeight: '600',
+    fontSize: 16,
   },
   sortControls: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    minHeight: 40,
+    gap: 10,
   },
   picker: {
     flex: 1,
+    color: COLORS.text,
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+  },
+  pickerItem: {
+    color: COLORS.text,
+    backgroundColor: COLORS.surface,
+    fontSize: 14,
   },
   sortOrderButton: {
     padding: 8,
     borderRadius: 20,
+    backgroundColor: COLORS.primary + '20',
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.primary + '40',
   },
   item: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.surface,
     padding: 16,
-    marginVertical: 5,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    marginBottom: 10,
+    borderRadius: 10,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
+    marginBottom: 4,
   },
   subtitle: {
-    color: COLORS.secondary,
-    marginTop: 4,
-  },
-  detail: {
-    color: '#666',
+    color: COLORS.textSecondary,
     fontSize: 14,
     marginTop: 2,
   },
-  score2: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 2,
+  detail: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    marginTop: 4,
   },
   score: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.primary,
     position: 'absolute',
     right: 16,
     top: 16,
+  },
+  score2: {
+    color: COLORS.primary,
+    fontSize: 16,
+    fontWeight: '600',
   },
   statsRow: {
     flexDirection: 'row',
@@ -398,49 +421,53 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   filterContainer: {
-    backgroundColor: 'white',
-    borderRadius: 8,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
     padding: 15,
     marginBottom: 15,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   input: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: COLORS.text,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
+    borderColor: COLORS.albumBorder,
     marginBottom: 10,
   },
   scoreFilter: {
     flexDirection: 'row',
     gap: 10,
+    marginBottom: 15,
   },
   scoreInput: {
     flex: 1,
   },
   filterToggle: {
     backgroundColor: COLORS.primary,
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   filterToggleText: {
-    color: 'white',
+    color: COLORS.surface,
+    fontWeight: '600',
   },
   emptyText: {
     textAlign: 'center',
-    color: '#666',
-    marginTop: 20,
+    color: COLORS.textSecondary,
+    marginTop: 30,
+    fontSize: 16,
   },
   listContent: {
     paddingBottom: 20,
-  },
-  pickerItem: {
-    fontSize: 14, // Kleinere Schriftgröße
-    fontWeight: '500',
-    color: COLORS.text,
-    numberOfLines: 1,
-    ellipsizeMode: 'tail', // Text kürzen mit ...
   },
 });
 

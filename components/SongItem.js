@@ -1,17 +1,12 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../ThemeContext';
 
-const COLORS = {
-    primary: '#2A9D8F',  // Sanftes Türkis
-    secondary: '#264653', // Tiefes Blau-Grau
-    accent: '#E9C46A',   // Warmes Senfgelb
-    background: '#F8F9FA', // Sehr helles Grau
-    text: '#2B2D42',      //Dunkles Grau-Blau
-    error: '#E76F51',    // Warmes Korallenrot
-  };
   
   const SongItem = ({ song, onPress, score, isRated, isInWatchlist, onWatchlistToggle, isIgnored, onIgnoreToggle, showSubButtons = true }) => {
+    const { COLORS } = useTheme();
+    const styles = useMemo(() => createStyles(COLORS), [COLORS]);
     return (
       <TouchableOpacity 
         onPress={(e) => {
@@ -36,7 +31,7 @@ const COLORS = {
       <Ionicons 
         name={isInWatchlist ? 'bookmark' : 'bookmark-outline'} 
         size={24} 
-        color={isInWatchlist ? '#2A9D8F' : '#666'} 
+        color={isInWatchlist ? COLORS.primary : COLORS.textSecondary} 
       />
     </TouchableOpacity>
     )}
@@ -44,23 +39,23 @@ const COLORS = {
         <Ionicons 
           name={isIgnored ? 'eye' : 'eye-off'} 
           size={24} 
-          color={isIgnored ? '#666' : '#666'} 
+          color={isIgnored ? COLORS.textSecondary : COLORS.textSecondary} 
         />
       </TouchableOpacity>
       </TouchableOpacity>
     );
   };
 
-  const styles = StyleSheet.create({
+  const createStyles =  (COLORS) => StyleSheet.create({
     container: {
       flexDirection: 'row',
       padding: 15,
       marginVertical: 5,
       marginHorizontal: 10,
-      backgroundColor: 'white',
+      backgroundColor: COLORS.surface,
       borderRadius: 10,
       alignItems: 'center',
-      shadowColor: '#000',
+      shadowColor: COLORS.shadow,
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.1,
       shadowRadius: 3,
@@ -105,14 +100,13 @@ const COLORS = {
       marginLeft: 10,
     },
     scoreText: {
-      color: 'white',
+      color: COLORS.surface,
       fontSize: 12,
       fontWeight: 'bold',
     },
     rated: {
-      backgroundColor: '#F0FAF9',
       borderWidth: 2,
-      borderColor: '#2A9D8F40',
+      borderColor: COLORS.primary,
     },
     ignoreButton: {
       marginLeft: 10,

@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, TextInput, Button, StyleSheet, Text, Alert, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { getAllRatings, addSong, addRating, resetDatabase, getAllAchievements, initDatabase, printSongTable, migrateAlbumInfo } from '../database';
-import { COLORS } from '../config/colors';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, THEMES } from '../ThemeContext';
 
 const ProfileScreen = () => {
   const [profileName, setProfileName] = useState('');
@@ -14,6 +14,9 @@ const ProfileScreen = () => {
   const [topArtistsLimit, setTopArtistsLimit] = useState('');
   const [topAlbumsLimit, setTopAlbumsLimit] = useState('');
   const [showIncompleteAlbums, setShowIncompleteAlbums] = useState(true);
+  const { COLORS, themeName, setTheme } = useTheme();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  
 
   useEffect(() => {
     loadProfile();
@@ -345,7 +348,7 @@ const ProfileScreen = () => {
           style={[styles.button, styles.primaryButton]}
           onPress={handleExport}
         >
-          <Ionicons name="download" size={20} color="white" />
+          <Ionicons name="download" size={20} color={COLORS.surface} />
           <Text style={[styles.buttonText, styles.primaryButtonText]}>Exportieren</Text>
         </TouchableOpacity>
 
@@ -353,7 +356,7 @@ const ProfileScreen = () => {
           style={[styles.button, styles.primaryButton]}
           onPress={handleImport}
         >
-          <Ionicons name="cloud-upload" size={20} color="white" />
+          <Ionicons name="cloud-upload" size={20} color={COLORS.surface} />
           <Text style={[styles.buttonText, styles.primaryButtonText]}>Importieren</Text>
         </TouchableOpacity>
       </View>
@@ -369,6 +372,7 @@ const ProfileScreen = () => {
             value={topArtistsLimit}
             onChangeText={setTopArtistsLimit}
             keyboardType="numeric"
+            placeholderTextColor={COLORS.text + '90'}
           />
         </View>
 
@@ -380,6 +384,7 @@ const ProfileScreen = () => {
             value={topAlbumsLimit}
             onChangeText={setTopAlbumsLimit}
             keyboardType="numeric"
+            placeholderTextColor={COLORS.text + '90'}
           />
         </View>
 
@@ -389,6 +394,7 @@ const ProfileScreen = () => {
             value={showIncompleteAlbums}
             onValueChange={setShowIncompleteAlbums}
             trackColor={{ true: COLORS.primary }}
+            thumbColor={COLORS.background}
           />
         </View>
 
@@ -400,13 +406,38 @@ const ProfileScreen = () => {
         </TouchableOpacity>
       </View>
 
+      <View style={[styles.section,]}>
+        <Text style={[styles.sectionHeader, { color: COLORS.text }]}>Farbschema</Text>
+        
+        {Object.keys(THEMES).map((themeKey) => (
+          <TouchableOpacity
+            key={themeKey}
+            onPress={() => setTheme(themeKey)}
+            style={[
+              styles.themeButton,
+              { 
+                backgroundColor: COLORS.primary + '20',
+                borderColor: themeKey === themeName ? COLORS.primary : 'transparent'
+              }
+            ]}
+          >
+            <Text style={[styles.themeButtonText, { color: COLORS.text }]}>
+              {themeKey.charAt(0).toUpperCase() + themeKey.slice(1)}
+            </Text>
+            {themeKey === themeName && (
+              <Ionicons name="checkmark" size={20} color={COLORS.primary} />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Gefahrenzone</Text>
         <TouchableOpacity
           style={[styles.button, styles.dangerButton]}
           onPress={handleDelete}
         >
-          <Ionicons name="warning" size={20} color="white" />
+          <Ionicons name="warning" size={20} color={COLORS.surface} />
           <Text style={[styles.buttonText, styles.dangerButtonText]}>Datenbank löschen</Text>
         </TouchableOpacity>
       </View>
@@ -414,7 +445,7 @@ const ProfileScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles =  (COLORS) =>  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -423,11 +454,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   section: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -455,7 +486,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: COLORS.albumBorder,
   },
   button: {
     borderRadius: 10,
@@ -477,10 +508,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   primaryButtonText: {
-    color: 'white',
+    color: COLORS.surface,
   },
   dangerButtonText: {
-    color: 'white',
+    color: COLORS.surface,
   },
   settingItem: {
     flexDirection: 'row',
@@ -496,7 +527,20 @@ const styles = StyleSheet.create({
   },
   switch: {
     transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
-  }
+  },
+  themeButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 2,
+    marginBottom: 10,
+  },
+  themeButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });
 
 export default ProfileScreen;

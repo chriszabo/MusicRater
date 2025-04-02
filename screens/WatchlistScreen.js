@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, FlatList, TouchableOpacity, Text, StyleSheet, Image, ScrollView, TextInput } from 'react-native';
 import { getWatchlistItems, removeFromWatchlist, saveGlobalWatchlistNote, getGlobalWatchlistNote, getExistingRating } from '../database';
 import { useIsFocused } from '@react-navigation/native';
+import { useTheme } from '../ThemeContext';
 
 const WatchlistScreen = ({ navigation }) => {
   const [items, setItems] = useState([]);
   const [globalNote, setGlobalNote] = useState('');
   const isFocused = useIsFocused();
+  const { COLORS } = useTheme();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -97,6 +100,7 @@ const WatchlistScreen = ({ navigation }) => {
   return (
     <FlatList
       data={items}
+      style={styles.list}
       keyExtractor={item => item.id}
       renderItem={renderItem}
       ListHeaderComponent={
@@ -117,23 +121,32 @@ const WatchlistScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (COLORS) => StyleSheet.create({
+  list: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   container: {
-    padding: 15,
-    backgroundColor: '#F8F9FA',
+    padding: 20,
+    flexGrow: 1,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 12,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   image: {
-    width: 50,
-    height: 50,
-    borderRadius: 4,
+    width: 60,
+    height: 60,
+    borderRadius: 8,
     marginRight: 15,
   },
   info: {
@@ -141,34 +154,63 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
   },
   details: {
-    color: '#666',
+    color: COLORS.textSecondary,
     fontSize: 14,
   },
   removeButton: {
     padding: 8,
+    backgroundColor: COLORS.error + '20',
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   removeText: {
-    fontSize: 24,
-    color: '#E76F51',
+    fontSize: 30,
+    color: COLORS.error,
+    lineHeight: 28,
   },
   emptyText: {
     textAlign: 'center',
-    marginTop: 20,
-    color: '#666',
+    marginTop: 30,
+    color: COLORS.textSecondary,
+    fontSize: 16,
+    padding: 20,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    marginHorizontal: 20,
   },
   noteInput: {
-    fontSize: 14,
-    color: '#444',
+    fontSize: 16,
+    color: COLORS.text,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: COLORS.albumBorder,
+    borderRadius: 10,
+    padding: 15,
     minHeight: 100,
-    marginBottom: 10,
-    backgroundColor: 'white',
+    marginBottom: 15,
+    backgroundColor: COLORS.surface,
+    textAlignVertical: 'top',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  header: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 15,
+    paddingLeft: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
   },
 });
 

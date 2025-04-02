@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, FlatList, TextInput, ActivityIndicator, Text, StyleSheet, Keyboard, TouchableOpacity, Image, Alert } from 'react-native';
 import { searchSpotify, searchArtists, getArtistAlbums, getArtistTopTracks } from '../spotify';
 import { addSong, getIgnoredCount, getExistingRating, incrementProfileData, getAllRatings, getAlbumStatsById, addToWatchlist, removeFromWatchlist, getWatchlistItems, getIgnoredSongs, addToIgnored, removeFromIgnored } from '../database';
 import SongItem from '../components/SongItem';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS } from '../config/colors';
+import { useTheme } from '../ThemeContext';
 
 const modeConfig = {
   track: {
@@ -39,6 +39,8 @@ const SearchScreen = ({ navigation }) => {
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [ignoredSongs, setIgnoredSongs] = useState([]);
+  const { COLORS } = useTheme();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   // Daten laden bei Fokus und Änderungen
   useFocusEffect(
@@ -258,7 +260,7 @@ const handleIgnoreToggle = async (item) => {
         <Ionicons 
           name={isInWatchlist ? 'bookmark' : 'bookmark-outline'} 
           size={24} 
-          color={isInWatchlist ? COLORS.primary : '#666'} 
+          color={isInWatchlist ? COLORS.primary : COLORS.text + '90'} 
         />
       </TouchableOpacity>
       </TouchableOpacity>
@@ -315,7 +317,7 @@ const handleIgnoreToggle = async (item) => {
 
   const LoadingIndicator = () => (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="small" color="#2A9D8F" />
+      <ActivityIndicator size="small" color={ COLORS.primary } />
       <Text style={styles.loadingText}>Lade Daten...</Text>
     </View>
   );
@@ -329,16 +331,17 @@ const handleIgnoreToggle = async (item) => {
           onChangeText={setQuery}
           onSubmitEditing={handleSearch}
           style={styles.input}
+          placeholderTextColor={COLORS.text + '90'}
         />
         <View style={styles.buttonsContainer}>
         <TouchableOpacity 
       onPress={() => navigation.navigate('IgnoredSongs')}
       style={styles.iconButton}
     >
-      <Ionicons name="eye-off" size={24} color="#2A9D8F" />
+      <Ionicons name="eye-off" size={24} color={ COLORS.primary } />
     </TouchableOpacity>
         <TouchableOpacity onPress={() => setMode(prev => modeConfig[prev].next)} style={styles.iconButton}>
-          <Ionicons name={modeConfig[mode].icon} size={28} color="#2A9D8F" />
+          <Ionicons name={modeConfig[mode].icon} size={28} color={ COLORS.primary } />
         </TouchableOpacity>
         </View>
       </View>
@@ -347,34 +350,42 @@ const handleIgnoreToggle = async (item) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.background,
+    padding: 15,
   },
   searchHeader: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 20,
+    marginBottom: 15,
     alignItems: 'center',
   },
   input: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
     padding: 15,
     fontSize: 16,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.albumBorder,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   albumItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
@@ -389,51 +400,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   albumTitle: {
+    color: COLORS.text,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 5,
   },
   albumDetails: {
-    color: '#666',
+    color: COLORS.textSecondary,
     fontSize: 14,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
   },
   error: {
-    color: '#E76F51',
+    color: COLORS.error,
     textAlign: 'center',
     marginTop: 20,
+    padding: 15,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
   },
   prompt: {
     textAlign: 'center',
     marginTop: 20,
-    color: '#666',
-  },
-  modeButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#F0FAF9',
-    marginLeft: 10,
+    color: COLORS.textSecondary,
+    padding: 15,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
   },
   ratingInfo: {
-    color: '#2A9D8F',
+    color: COLORS.primary,
     fontWeight: '500',
   },
   fullyRatedAlbum: {
-    backgroundColor: '#F0FAF9',
     borderWidth: 2,
-    borderColor: '#2A9D8F40',
+    borderColor: COLORS.primary,
   },
   loadingContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    padding: 10,
+    padding: 15,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    marginVertical: 10,
   },
   loadingText: {
     marginLeft: 10,
-    color: '#2A9D8F',
+    color: COLORS.textSecondary,
   },
   buttonsContainer: {
     flexDirection: 'row',
@@ -442,9 +452,20 @@ const styles = StyleSheet.create({
   iconButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#F0FAF9',
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary + '20',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginVertical: 15,
+    paddingLeft: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
   },
 });
 

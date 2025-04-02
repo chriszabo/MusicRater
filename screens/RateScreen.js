@@ -1,19 +1,12 @@
-import React, { useState, useRef } from 'react'; // useRef hinzufügen
+import React, { useState, useRef, useMemo } from 'react'; // useRef hinzufügen
 import { View, Text, StyleSheet, Image, Alert, Button, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { addRating, deleteRating, incrementProfileData } from '../database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
+import { useTheme } from '../ThemeContext';
 
 
-const COLORS = {
-  primary: '#2A9D8F',  // Sanftes Türkis
-  secondary: '#264653', // Tiefes Blau-Grau
-  accent: '#E9C46A',   // Warmes Senfgelb
-  background: '#F8F9FA', // Sehr helles Grau
-  text: '#2B2D42',      //Dunkles Grau-Blau
-  error: '#E76F51',    // Warmes Korallenrot
-};
 
 const LOCAL_IMAGES = {
   'dog_icon.jpeg': require('../assets/dog_icon.jpeg'),
@@ -29,6 +22,8 @@ const RateScreen = ({ route, navigation }) => {
   const [notes, setNotes] = useState(initialNotes)
   const sliderValue = useRef(score); // useRef für den Slider-Wert
   const [showSavedMessage, setShowSavedMessage] = useState(false);
+  const { COLORS } = useTheme();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   const handleOpenExternalUrl = async () => {
     try {
@@ -127,9 +122,9 @@ const RateScreen = ({ route, navigation }) => {
           value={sliderValue.current}
           onValueChange={(value) => setScore(value)}
           onSlidingComplete={handleSaveRating}
-          minimumTrackTintColor="#1EB1FC"
-          maximumTrackTintColor="#D3D3D3"
-          thumbTintColor="#1EB1FC"
+          minimumTrackTintColor={ COLORS.primary }
+          maximumTrackTintColor= { COLORS.primary + '90'}
+          thumbTintColor={ COLORS.primary }
         />
 
         {created_at && (
@@ -145,6 +140,7 @@ const RateScreen = ({ route, navigation }) => {
         multiline
         style={styles.notesInput}
         blurOnSubmit={false}
+        placeholderTextColor={COLORS.text + '90'}
       />
     </ScrollView>
 
@@ -165,106 +161,124 @@ const RateScreen = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: COLORS.background },
+const createStyles = (COLORS) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 80,
+  },
   content: {
+    alignItems: 'center',
     marginBottom: 20,
   },
-  artist: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 5,
-    textAlign: "center"
-  },
-  album: {
-    fontSize: 16,
-    color: '#888',
+  imageContainer: {
+    width: '100%',
+    height: 220,
+    borderRadius: 12,
+    overflow: 'hidden',
     marginBottom: 20,
-    textAlign: "center"
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  score: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  date: {
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    marginBottom: 20,
+  image: {
+    width: '100%',
+    height: '100%',
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 8,
-    textAlign: "center"
+    textAlign: 'center',
   },
-  slider: {
-    width: '100%',
-    height: 12,
-    marginVertical: 25,
+  artist: {
+    fontSize: 18,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  album: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginBottom: 20,
+    textAlign: 'center',
   },
   sliderLabel: {
     fontWeight: '800',
     fontSize: 54,
     color: COLORS.primary,
     marginBottom: -10,
-    textAlign: "center"
+    textAlign: 'center',
   },
-  savedMessage: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 25,
-  },
-  imageContainer: {
+  slider: {
     width: '100%',
-    height: 220,
-    borderRadius: 12, // 👈 Radius hier anwenden
-    overflow: 'hidden', // 👈 Wichtig! Schneidet das Bild ab
-    marginBottom: 20,
+    height: 12,
+    marginVertical: 25,
   },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  savedMessageText: {
-    color: "white"
+  date: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 10,
   },
   externalUrlText: {
     color: COLORS.primary,
     textDecorationLine: 'underline',
     textAlign: 'center',
     marginTop: 10,
+    fontSize: 16,
   },
   notesInput: {
     minHeight: 100,
     maxHeight: 200,
     fontSize: 16,
     padding: 15,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.albumBorder,
     marginBottom: 15,
     textAlignVertical: 'top',
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 80, // Platz für den Löschen-Button
+  savedMessage: {
+    position: 'absolute',
+    bottom: 80,
+    alignSelf: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+  },
+  savedMessageText: {
+    color: COLORS.surface,
+    fontWeight: '600',
   },
   deleteButton: {
     position: 'absolute',
     bottom: 20,
     left: 20,
     right: 20,
+    backgroundColor: COLORS.error,
+    borderRadius: 10,
+    padding: 15,
+    alignItems: 'center',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
 });
 

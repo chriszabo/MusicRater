@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, TextInput, FlatList, Text, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
 import { getArtistStats, getOverallStats, incrementProfileData } from '../database';
-import { COLORS } from '../config/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTheme } from '../ThemeContext';
 
 const StatisticsScreen = () => {
     const [artist, setArtist] = useState('');
@@ -12,6 +12,8 @@ const StatisticsScreen = () => {
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [currentProfile, setCurrentProfile] = useState('');
+    const { COLORS } = useTheme();
+    const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   
     const loadData = async () => {
       try {
@@ -167,103 +169,95 @@ const StatisticsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  scrollContainer: {
+    padding: 15,
+  },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
     padding: 15,
-    marginBottom: 20,
+    margin: 10,
     fontSize: 16,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.albumBorder,
   },
   section: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
     padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    marginBottom: 15,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   sectionHeader: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 15,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+    paddingLeft: 10,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
+    gap: 10,
   },
   statItem: {
-    alignItems: 'center',
     flex: 1,
+    backgroundColor: COLORS.surfaceVariant,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.primary,
   },
   statLabel: {
-    fontSize: 14,
-    color: COLORS.text,
-    marginTop: 5,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+    textAlign: 'center',
   },
   topList: {
     marginTop: 10,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    padding: 12,
   },
   listItem: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.text,
-    paddingVertical: 4,
-  },
-  subHeader: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginTop: 15,
-    marginBottom: 10,
-  },
-  emptyText: {
-    color: COLORS.text + '90',
-    fontStyle: 'italic',
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  label: {
-    fontSize: 16,
-    color: COLORS.text,
-  },
-  value: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.primary,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.albumBorder,
   },
   albumItem: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: COLORS.albumBorder,
   },
   albumTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     color: COLORS.text,
   },
   albumStats: {
-    color: COLORS.text + '90',
+    color: COLORS.textSecondary,
     marginTop: 4,
-  },
-  scrollContainer: {
-    padding: 20,
+    fontSize: 13,
   },
 });
 
